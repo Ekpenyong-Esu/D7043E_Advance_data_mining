@@ -1,0 +1,13 @@
+data/
+results/checkpoints/*.pth
+results/checkpoints/*.pkl
+max78002/synthesis_output/*/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.pytest_cache/
+logs/
+*.log
+!**/.gitkeep

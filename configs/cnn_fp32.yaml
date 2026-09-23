@@ -1,0 +1,26 @@
+name: cnn_fp32
+seed: 42
+data: configs/preprocess.yaml
+model:
+  type: cnn1d
+  channels: [16, 32, 64, 64]
+  kernels: [7, 5, 3, 3]
+  pools: [2, 2, 4, 1]
+  num_classes: 4
+training:
+  optimizer: adam
+  lr: 0.001
+  weight_decay: 0.0
+  batch_size: 128
+  epochs: 50
+  loss: weighted_ce             # weighted_ce | ce | focal
+  class_weight_power: 0.5        # weight = (1/freq)^power
+  oversample_minority: true
+  early_stopping_patience: 10
+  selection_metric: macro_f1
+  qat: false
+augmentation:
+  amplitude_scale: [0.8, 1.2]
+  shift_samples: 5
+  gaussian_noise_std: 0.02
+  baseline_wander: true

@@ -1,0 +1,7 @@
+name: noise_test
+seed: 42
+data: configs/preprocess.yaml
+checkpoint: results/checkpoints/cnn_qat_best.pth
+noise_types: [bw, em, ma]       # baseline wander, electrode motion, muscle artifact
+snr_db: [12, 6, 0]
+split: test                      # noise is added to raw DS2 signals before preprocessing

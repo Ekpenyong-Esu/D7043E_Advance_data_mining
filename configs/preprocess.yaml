@@ -1,0 +1,30 @@
+# Data preparation. Every number used by src/prepare_data.py lives here.
+seed: 42
+fs: 360
+lead: MLII                      # selected by name, never by index (record 114 is swapped)
+
+paths:
+  raw_mitdb: data/raw/mitdb
+  raw_nstdb: data/raw/nstdb
+  processed: data/processed
+  results: results
+
+records:
+  ds1: [101,106,108,109,112,114,115,116,118,119,122,124,201,203,205,207,208,209,215,220,223,230]
+  ds2: [100,103,105,111,113,117,121,123,200,202,210,212,213,214,219,221,222,228,231,232,233,234]
+  validation: [108,116,124,203,208,209,223]   # subset of ds1; train = ds1 - validation
+
+beat:
+  samples_before: 90
+  samples_after: 166              # total window = 256
+
+filter:
+  enabled: true
+  method: median                  # median | highpass | none
+  median_kernels_ms: [200, 600]
+  highpass_hz: 0.5
+  lowpass_hz: 40                  # set null to disable
+
+normalize:
+  method: zscore                  # zscore | maxabs | none
+  clip: 4.0                       # clip to [-clip, clip] after normalization
