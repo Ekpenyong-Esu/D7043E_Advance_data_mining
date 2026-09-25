@@ -1,6 +1,7 @@
-"""Entry point: raw PhysioNet records -> processed train/val/test arrays.
+"""Entry point: turn the raw PhysioNet records into processed train/val/test arrays.
 
-Thin CLI only. All logic lives in ``ecg.data``.
+Run with ``make prepare`` or ``python src/prepare_data.py --config configs/preprocess.yaml``.
+This file only reads the arguments. The real work is in ``ecg.data.pipeline``.
 """
 import argparse
 
@@ -15,7 +16,7 @@ def main() -> None:
     args = parser.parse_args()
 
     cfg = load_config(args.config)
-    set_seed(cfg["seed"])
+    set_seed(cfg["seed"])       # same seed, same output
     prepare_all_splits(cfg)
 
 

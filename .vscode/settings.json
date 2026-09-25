@@ -1,0 +1,47 @@
+{
+  "latex-workshop.latex.recipe.default": "pdflatex \u279e biber \u279e pdflatex \u00d7 2",
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "pdflatex \u279e biber \u279e pdflatex \u00d7 2",
+      "tools": [
+        "pdflatex",
+        "biber",
+        "pdflatex",
+        "pdflatex"
+      ]
+    }
+  ],
+  "latex-workshop.latex.tools": [
+    {
+      "name": "pdflatex",
+      "command": "pdflatex",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "biber",
+      "command": "biber",
+      "args": [
+        "%DOCFILE%"
+      ]
+    }
+  ],
+  "latex-workshop.latex.rootFile.doNotPrompt": true,
+  "latex-workshop.latex.autoBuild.run": "never",
+  "latex-workshop.latex.outDir": "%DIR%",
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/src"
+  ],
+  "mypy-type-checker.interpreter": [
+    "${workspaceFolder}/.venv/bin/python"
+  ],
+  "mypy-type-checker.args": [
+    "--config-file=${workspaceFolder}/pyproject.toml"
+  ],
+  "python.testing.pytestEnabled": true
+}

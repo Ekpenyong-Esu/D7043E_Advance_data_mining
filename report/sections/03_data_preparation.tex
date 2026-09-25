@@ -1,0 +1,169 @@
+\section{Data Preparation}
+\label{sec:data-preparation}
+
+All steps in this section are implemented in \texttt{src/prepare\_data.py} and the \texttt{ecg.data} package. Every tunable number comes from \texttt{configs/preprocess.yaml}, so the whole pipeline can be rerun from the raw PhysioNet files with one command.
+
+\subsection{Record Selection}
+\label{sec:record-selection}
+
+The split follows the inter-patient partition of de~Chazal et al.~\cite{dechazal2004}, as recommended by the assignment. The four paced records are excluded.
+
+\begin{table}[H]
+  \centering
+  \caption{Record assignment. Training and validation together form DS1.}
+  \label{tab:records}
+  \rowcolors{2}{white}{rowtint}
+  \begin{tabularx}{\linewidth}{l c Y}
+        \rowcolor{primaryblue}
+    \hd{Split} & \hd{Records} & \hd{Record numbers} \\
+    Training (DS1 minus validation) & 17 & 101, 106, 108, 109, 112, 114, 115, 116, 119, 122, 207, 208, 209, 215, 220, 223, 230 \\
+    Validation (subset of DS1)      & 5  & 118, 124, 201, 203, 205 \\
+    Test (DS2)                      & 22 & 100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210, 212, 213, 214, 219, 221, 222, 228, 231, 232, 233, 234 \\
+    \bottomrule
+  \end{tabularx}
+
+\end{table}
+
+The validation records were chosen after inspecting the per-record class counts (Figure~\ref{fig:record-dist}). A first choice that placed record 208 in validation left only 20 fusion beats for training, because record 208 alone holds 372 of the 415 F beats in DS1. The final choice keeps records 208 and 209, which hold most of the F and S beats respectively, in training, and uses five records that together contain all four classes: 118 and 201 contribute S beats, 203 and 201 contribute V beats, and 124 and 205 contribute a few F beats. Validation therefore holds about 23\,\% of the DS1 beats but only 19 fusion beats, which is a limitation of the dataset rather than of the split; no assignment of DS1 records gives both training and validation a large F class. Validation is used for early stopping, hyperparameter choice and model selection. DS2 is not used until the final model is fixed.
+
+\subsection{ECG Channel Selection}
+
+A single lead, MLII, is used. It is present in every record used, it is the lead the annotators worked from, and it shows the QRS complex most clearly. A single lead also matches the wearable setting, where a patch or watch typically records one channel.
+
+The lead is selected by its name in the record header rather than by position, because in record 114 MLII is stored as the second channel. If a record has no MLII the script raises an error rather than substituting another lead. This only affects records 102 and 104, which are excluded.
+
+\subsection{Beat Extraction}
+
+No beat detector is used. R-peak positions are taken from the expert annotation files, which is the standard approach for this database and keeps the project focused on classification.
+
+Around each annotated R-peak a window of 90 samples before and 166 samples after the peak is extracted, giving a fixed input length of 256 samples, about 0.71 seconds at 360\,Hz. The window is asymmetric: 90 samples (250\,ms) before the peak covers the P wave, and 166 samples (460\,ms) after it covers the T wave at normal heart rates. A length of 256 is a power of two, which simplifies the memory layout on the MAX78002.
+
+Beats whose window extends past the start or end of the recording are dropped, which affects at most one or two beats per record.
+
+\subsection{Signal Preprocessing}
+
+The operations are applied in this order:
+
+\begin{center}
+\texttt{Raw MLII signal}
+$\rightarrow$ \texttt{baseline removal}
+$\rightarrow$ \texttt{low-pass filter}
+$\rightarrow$ \texttt{segmentation}
+$\rightarrow$ \texttt{per-beat normalisation}
+$\rightarrow$ \texttt{clipping}
+$\rightarrow$ \texttt{model input (1$\times$256)}
+\end{center}
+
+\textbf{Baseline removal.} Two cascaded median filters with windows of 200\,ms and 600\,ms estimate the slow baseline, which is then subtracted from the signal. Breathing and body movement shift the baseline by more than the height of a QRS complex, so without this step identical beats at different points of the drift would look different to the model. A median filter removes the drift without distorting the QRS and is cheap enough to run on the microcontroller's CPU.
+
+\textbf{Low-pass filter.} A zero-phase Butterworth filter with a 40\,Hz cut-off removes muscle noise and mains interference above the frequency range of the ECG itself. This step is optional in the configuration so that its effect can be measured in the noise experiment.
+
+\textbf{Segmentation.} The filtered signal is cut into 256-sample windows as described above. Segmentation follows filtering so that the filters operate on a continuous signal and produce no edge effects inside a beat.
+
+\textbf{Per-beat normalisation.} Each window is standardised to zero mean and unit standard deviation. Amplitude varies by a factor of several between subjects and electrode placements and carries no class information. Normalisation is applied per beat rather than per record because a wearable does not know the record statistics in advance.
+
+\textbf{Clipping.} Values are clipped to the range $[-8, 8]$ standard deviations. This bounds the input, which 8-bit quantisation requires, and prevents a single electrode-motion spike from dominating the window. The limit was first set to 4, but inspection of the processed beats showed that R-peaks typically reach 5 to 7 standard deviations, so a limit of 4 flattened the peak on 74\,\% of beats and did so far more often for N and S beats than for V beats. A limit of 8 leaves all ordinary beats untouched. In the final step before the model the bounded range is mapped to the accelerator's input range of $[-1, 1)$.
+
+\textbf{RR intervals.} Alongside each window, the time to the previous and next annotated beat is stored, together with the ratio of the previous interval to the mean of the ten intervals before it. These values are capped at 3 seconds, because unannotated episodes such as the 100-second ventricular flutter in record 207 would otherwise produce meaningless intervals. They are not part of the CNN input; the baseline uses them.
+
+\subsection{Label Preparation}
+
+The mapping from annotation symbol to class is a single dictionary in \texttt{src/ecg/constants.py}, reproduced here in full. Any symbol not listed is either an excluded beat or a non-beat annotation and is dropped with a count.
+
+\begin{table}[H]
+  \centering
+  \caption{Complete label mapping.}
+  \label{tab:label-mapping}
+  \rowcolors{2}{white}{rowtint}
+  \begin{tabularx}{\linewidth}{l Y c c}
+        \rowcolor{primaryblue}
+    \hd{Symbol} & \hd{PhysioNet description} & \hd{Class} & \hd{Index} \\
+    \texttt{N} & Normal beat                          & N & 0 \\
+    \texttt{L} & Left bundle branch block beat        & N & 0 \\
+    \texttt{R} & Right bundle branch block beat       & N & 0 \\
+    \texttt{e} & Atrial escape beat                   & N & 0 \\
+    \texttt{j} & Nodal (junctional) escape beat       & N & 0 \\
+    \texttt{A} & Atrial premature beat                & S & 1 \\
+    \texttt{a} & Aberrated atrial premature beat      & S & 1 \\
+    \texttt{J} & Nodal (junctional) premature beat    & S & 1 \\
+    \texttt{S} & Supraventricular premature beat      & S & 1 \\
+    \texttt{V} & Premature ventricular contraction    & V & 2 \\
+    \texttt{E} & Ventricular escape beat              & V & 2 \\
+    \texttt{F} & Fusion of ventricular and normal beat & F & 3 \\
+    \midrule
+    \texttt{/}, \texttt{f}, \texttt{Q} & Paced, fusion of paced and normal, unclassifiable & excluded & -- \\
+    others & Rhythm, noise and signal-quality annotations & not a beat & -- \\
+    \bottomrule
+  \end{tabularx}
+
+\end{table}
+
+\subsection{Class Imbalance}
+
+In the training set roughly 89.6\,\% of beats are normal, 1.7\,\% are S, 7.6\,\% are V and 1.0\,\% are F, so the ratio between the most and least common class is about 90 to one. With plain cross-entropy a network converges towards predicting N almost always, because that minimises the loss.
+
+Two measures are combined. First, a \textbf{class-weighted cross-entropy loss}, with each class weighted by the inverse square root of its frequency; the square root moderates the weights so that rare classes are emphasised without destabilising training. Second, \textbf{oversampling of S and F} in the training sampler, so that each batch contains more minority beats than their natural share.
+
+Undersampling normal beats would discard most of the data. Focal loss is kept as a configurable alternative for model selection, and no balancing is included as a negative control. The final choice is made on validation macro-F1 and S/F recall, not on the test set.
+
+\subsection{Data Augmentation}
+
+Augmentation is applied on the fly to training beats only. Validation and test beats are never augmented, so the validation score remains an unbiased estimate. Each transformation is a small random change that preserves the class:
+
+\begin{itemize}[nosep]
+  \item \textbf{Amplitude scaling} by a random factor between 0.8 and 1.2, since amplitude carries no class information.
+  \item \textbf{Time shift} of up to $\pm 5$ samples, so the model tolerates small errors in R-peak alignment.
+  \item \textbf{Baseline wander}, a low-frequency sinusoid added to the window, to prepare the model for imperfect baseline removal.
+  \item \textbf{Gaussian noise} with a standard deviation of about 0.02 after normalisation.
+  \item \textbf{Real ECG noise} from the Noise Stress Test Database at a signal-to-noise ratio of 6\,dB or better, as an optional setting. One model is trained with and one without it to measure the effect in the noise experiment.
+\end{itemize}
+
+Beats are not stretched or compressed in time. QRS width is one of the main features separating V from N beats, so changing it would corrupt the labels.
+
+\subsection{Final Dataset}
+
+\begin{table}[H]
+  \centering
+  \caption{Beat counts per split, produced by \texttt{prepare\_data.py} and stored in \texttt{results/split\_stats.csv}.}
+  \label{tab:final-dataset}
+  \rowcolors{2}{white}{rowtint}
+  \begin{tabularx}{\linewidth}{l c R R R R R}
+        \rowcolor{primaryblue}
+    \hd{Split} & \hd{Records} & \hd{N} & \hd{S} & \hd{V} & \hd{F} & \hd{Total} \\
+    Train & 17 & 35\,414 & 684 & 3\,012 & 395 & 39\,505 \\
+    Validation & 5 & 10\,434 & 260 & 776 & 19 & 11\,489 \\
+    Test (DS2) & 22 & 44\,240 & 1\,837 & 3\,220 & 388 & 49\,685 \\
+    \bottomrule
+  \end{tabularx}
+
+\end{table}
+
+\subsection{Reproducibility}
+
+\begin{table}[H]
+  \centering
+  \caption{Settings needed to reproduce the preprocessing. All are stored in \texttt{configs/preprocess.yaml}.}
+  \label{tab:reproducibility}
+  \rowcolors{2}{white}{rowtint}
+  \begin{tabularx}{\linewidth}{l Y}
+        \rowcolor{primaryblue}
+    \hd{Item} & \hd{Value} \\
+    Python             & 3.10 \\
+    Key packages       & wfdb 4.3.1, NumPy 2.2.6, SciPy 1.15.3, scikit-learn 1.7.2; exact versions in \texttt{requirements.txt} \\
+    Random seed        & 42, applied to Python, NumPy and PyTorch \\
+    Sampling frequency & 360\,Hz, no resampling \\
+    Lead               & MLII, selected by name \\
+    Window             & 90 samples before the R-peak, 166 after; input size $1 \times 256$ \\
+    Baseline removal   & Cascaded median filters, 200\,ms and 600\,ms \\
+    Low-pass filter    & Butterworth, 40\,Hz cut-off, zero-phase \\
+    Normalisation      & Per-beat z-score, clipped to $[-8, 8]$ \\
+    Data source        & PhysioNet \texttt{mitdb} 1.0.0 and \texttt{nstdb} 1.0.0, downloaded with the \texttt{wfdb} package \\
+    \bottomrule
+  \end{tabularx}
+
+\end{table}
+
+Running the following command from a clean checkout, after downloading the data, regenerates every array and every number in this section:
+\begin{center}
+\texttt{python src/prepare\_data.py --config configs/preprocess.yaml}
+\end{center}

@@ -1,6 +1,7 @@
-"""Entry point: noise-robustness experiment (clean / 12 dB / 6 dB / 0 dB).
+"""Entry point: the noise-robustness experiment (clean, 12 dB, 6 dB, 0 dB).
 
-Thin CLI only. Logic lives in ``ecg.noise``.
+Run with ``python src/noise_test.py --config configs/noise.yaml``.
+This file only reads the arguments. The real work is in ``ecg.noise``.
 """
 import argparse
 
@@ -15,7 +16,7 @@ def main() -> None:
     args = parser.parse_args()
 
     cfg = load_config(args.config)
-    set_seed(cfg["seed"])
+    set_seed(cfg["seed"])       # the noise offsets are random, so seed them
     run_noise_experiment(cfg)
 
 

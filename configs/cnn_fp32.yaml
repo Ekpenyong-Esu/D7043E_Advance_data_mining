@@ -3,9 +3,9 @@ seed: 42
 data: configs/preprocess.yaml
 model:
   type: cnn1d
-  channels: [16, 32, 64, 64]
-  kernels: [7, 5, 3, 3]
-  pools: [2, 2, 4, 1]
+  channels: [16, 32, 64, 64]   # This is the convolutional channel configuration for each layer
+  kernels: [7, 5, 3, 3]   # Filter that slide through the image and do element-wise multiplication to extract features
+  pools: [2, 2, 4, 1]     # divides the image matrix into smaller regions by taking the maximum value in each region
   num_classes: 4
 training:
   optimizer: adam

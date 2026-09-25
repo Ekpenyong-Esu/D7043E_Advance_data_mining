@@ -1,6 +1,6 @@
-"""Entry point / re-export: PyTorch datasets and loaders.
+"""Re-export of the dataset code, kept because the assignment asks for a ``src/dataset.py`` file.
 
-Kept for the required project layout. Implementation lives in ``ecg.datasets``.
+The real code is in ``ecg.datasets``. ``noqa: F401`` tells the linter the unused imports are on purpose.
 """
 from ecg.datasets.beat_dataset import BeatDataset  # noqa: F401
 from ecg.datasets.loaders import build_loaders  # noqa: F401

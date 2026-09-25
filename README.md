@@ -30,7 +30,7 @@ The project must be carried out according to the **CRISP-DM methodology**:
 5. Evaluation
 6. Deployment
 
-CRISP-DM is iterative. You are expected to return to earlier stages when later experiments reveal problems.
+CRISP-DM is iterative stands for Cross-Industry Standard Process for Data Mining. You are expected to return to earlier stages when later experiments reveal problems.
 
 ---
 

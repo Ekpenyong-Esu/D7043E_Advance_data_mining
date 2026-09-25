@@ -1,4 +1,7 @@
-data/
+data/raw/*
+data/processed/*
+!data/raw/README.md
+!data/processed/README.md
 results/checkpoints/*.pth
 results/checkpoints/*.pkl
 max78002/synthesis_output/*/
@@ -11,3 +14,20 @@ __pycache__/
 logs/
 *.log
 !**/.gitkeep
+.mypy_cache/
+.ruff_cache/
+# LaTeX
+report/*.aux
+report/*.bbl
+report/*.bcf
+report/*.blg
+report/*.fdb_latexmk
+report/*.fls
+report/*.log
+report/*.out
+report/*.run.xml
+report/*.toc
+report/*.synctex.gz
+report/report.pdf
+results/eda/*
+!results/eda/README.md

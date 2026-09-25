@@ -1,6 +1,6 @@
 # Data preparation. Every number used by src/prepare_data.py lives here.
 seed: 42
-fs: 360
+fs: 360      # The ECG machine took 369 measurements every second
 lead: MLII                      # selected by name, never by index (record 114 is swapped)
 
 paths:
@@ -12,11 +12,11 @@ paths:
 records:
   ds1: [101,106,108,109,112,114,115,116,118,119,122,124,201,203,205,207,208,209,215,220,223,230]
   ds2: [100,103,105,111,113,117,121,123,200,202,210,212,213,214,219,221,222,228,231,232,233,234]
-  validation: [108,116,124,203,208,209,223]   # subset of ds1; train = ds1 - validation
+  validation: [118,124,201,203,205]      # subset of ds1; train = ds1 - validation. Keeps 208 (most F beats) and 209 (most S beats) in training
 
 beat:
-  samples_before: 90
-  samples_after: 166              # total window = 256
+  samples_before: 90 # To capture the P value before the R peak
+  samples_after: 166              # To capture the T value after the R peak; total window = 256
 
 filter:
   enabled: true
@@ -27,4 +27,4 @@ filter:
 
 normalize:
   method: zscore                  # zscore | maxabs | none
-  clip: 4.0                       # clip to [-clip, clip] after normalization
+  clip: 8.0                       # clip to [-clip, clip] after normalization. R-peaks reach 5-7 std, so 4 would flatten most of them

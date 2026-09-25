@@ -1,0 +1,67 @@
+\section{Evaluation}
+
+\subsection{Clean Test Results}
+\begin{table}[H]
+  \centering
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    Metric & Baseline & FP32 Edge Model & Quantized Model \\
+    \midrule
+    Accuracy         &  &  &  \\
+    Macro F1         &  &  &  \\
+    Model parameters &  &  &  \\
+    \bottomrule
+  \end{tabular}
+  \caption{Clean DS2 test results.}
+  \label{tab:clean-results}
+\end{table}
+
+\subsection{Per-Class Performance}
+\begin{table}[H]
+  \centering
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    Class & Precision & Sensitivity/Recall & F1 \\
+    \midrule
+    N &  &  &  \\
+    S &  &  &  \\
+    V &  &  &  \\
+    F &  &  &  \\
+    \bottomrule
+  \end{tabular}
+  \caption{Per-class performance of the final model on DS2.}
+  \label{tab:per-class}
+\end{table}
+% Confusion matrix figure; discuss which classes are difficult and why.
+
+\subsection{Quantization Analysis}
+\begin{itemize}
+  \item FP32 Macro F1: \rule{2cm}{0.4pt}
+  \item INT8 Macro F1: \rule{2cm}{0.4pt}
+  \item Difference: \rule{2cm}{0.4pt}
+\end{itemize}
+
+\subsection{Noise Robustness}
+\begin{table}[H]
+  \centering
+  \begin{tabular}{@{}lrr@{}}
+    \toprule
+    Condition & Accuracy & Macro F1 \\
+    \midrule
+    Clean &  &  \\
+    12 dB &  &  \\
+    6 dB  &  &  \\
+    0 dB  &  &  \\
+    \bottomrule
+  \end{tabular}
+  \caption{Performance under increasing ECG noise.}
+  \label{tab:noise}
+\end{table}
+% Plot performance vs noise level. Discuss: most affected classes, gradual degradation,
+% whether preprocessing helps, whether robustness could be improved.
+
+\subsection{Error Analysis}
+% Representative errors with ECG waveforms: N->S, S->N, V misclassified, errors under strong noise.
+
+\subsection{Success Criteria Review}
+% For each criterion from Section 1.4: Achieved / Partially achieved / Not achieved, with justification.

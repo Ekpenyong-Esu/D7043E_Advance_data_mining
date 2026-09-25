@@ -1,7 +1,7 @@
-"""Export one preprocessed beat as the .npy sample ai8xize.py needs (int8-scaled)."""
+"""Export one preprocessed beat as the ``.npy`` sample that ``ai8xize.py --sample-input`` needs. Not written yet."""
 import numpy as np
 
 
 def export_sample(beat: np.ndarray, out_path: str) -> None:
-    """Scale a (1, L) float beat in [-1, 1] to int8 range and save."""
+    """Scale a (1, L) float beat in [-1, 1] to the int8 range [-128, 127] and save it."""
     raise NotImplementedError

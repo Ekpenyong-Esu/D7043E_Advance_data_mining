@@ -5,3 +5,10 @@ pythonpath = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+mypy_path = "src"
+files = ["src", "tests"]
+ignore_missing_imports = true      # wfdb, sklearn, matplotlib, ai8x, torch ship no stubs
+warn_unused_ignores = true

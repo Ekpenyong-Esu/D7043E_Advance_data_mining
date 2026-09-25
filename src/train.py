@@ -1,6 +1,7 @@
-"""Entry point: train a baseline or CNN from a config file.
+"""Entry point: train a baseline or a CNN from a config file.
 
-Thin CLI only. Training logic lives in ``ecg.training``.
+Run with ``python src/train.py --config configs/cnn_fp32.yaml``.
+This file only reads the arguments. The real work is in ``ecg.training``.
 """
 import argparse
 

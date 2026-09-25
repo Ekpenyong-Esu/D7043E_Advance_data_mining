@@ -131,12 +131,13 @@ fs: 360
 lead: MLII
 ds1: [101,106,108,109,112,114,115,116,118,119,122,124,201,203,205,207,208,209,215,220,223,230]
 ds2: [100,103,105,111,113,117,121,123,200,202,210,212,213,214,219,221,222,228,231,232,233,234]
-val_records: [108,116,124,203,208,209,223]   # subset of DS1, chosen so S and V appear in validation
+val_records: [118,124,201,203,205]   # subset of DS1; keeps 208 (most F) and 209 (most S) in training
 ```
 
 Train = DS1 minus `val_records`. Validation = `val_records`. Test = DS2.
-Make sure validation contains S and V beats (S is concentrated in a few
-records such as 118, 124, 207, 209, 232).
+Check `results/record_stats.csv` before choosing: record 208 holds 372 of the
+415 F beats in DS1 and record 209 holds 383 of the 944 S beats, so both must
+stay in training. The validation set will have few F beats whatever you do.
 
 ### 4.2 Channel selection (§3.2)
 
@@ -166,11 +167,20 @@ Raw ECG (360 Hz, MLII)
  → 2. optional low-pass 40 Hz                                                        # remove EMG / mains
  → 3. segmentation around R-peak (fixed window)                                     # fixed-size input
  → 4. per-beat normalization (z-score or divide by max|x|)                          # amplitude varies per patient / electrode
- → 5. clipping to [-1, 1]  (or [-4, 4] σ)                                          # bounded range for INT8 (ai8x expects [-128, 127] / 128)
+ → 5. clipping to [-8, 8] σ (R-peaks reach 5–7 σ; a tighter clip flattens them)    # bounded range for INT8 (ai8x expects [-128, 127] / 128)
  → model input, shape (1, 256)
 ```
 
 Write one sentence of justification per operation in the report.
+
+### 4.4b RR-interval features (`src/ecg/data/rr.py`)
+
+From the annotation positions compute, per beat: pre-RR, post-RR, and
+pre-RR divided by the mean RR of the previous ~10 beats. S beats share their
+shape with N beats and differ mainly in timing (they arrive early, so pre-RR
+is short and post-RR is long). Feed these to the baseline directly. For the
+CNN, prefer a wider window covering the neighbouring beats so the timing is
+visible in the waveform and the MAX78002 still receives a single tensor.
 
 ### 4.5 Label preparation (§3.5)
 
@@ -317,6 +327,11 @@ window length (128 / 256 / 360), number of channels, kernel size, loss
 **Selection metric: validation macro-F1.** Never look at DS2 here.
 
 Save the best checkpoint to `results/checkpoints/cnn_fp32_best.pth`.
+
+**If validation S recall misses the success criterion**, switch to a
+multi-beat window (previous + current + next beat) before changing anything
+else. It gives the CNN the RR timing implicitly and remains a plain 1D CNN
+(see [APPROACHES.md](APPROACHES.md) §4.2 B).
 
 ---
 

@@ -1,7 +1,8 @@
-"""Entry point: evaluate a trained model on validation or test.
+"""Entry point: score a trained model on the validation or test split.
 
-``--split test`` is refused unless ``--final`` is also given, so DS2 cannot be
-touched by accident during model selection.
+The test split is DS2. It must stay untouched until the very end, so
+``--split test`` is refused unless ``--final`` is also given. This makes it
+hard to peek at the test set by accident while choosing a model.
 """
 import argparse
 

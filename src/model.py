@@ -1,5 +1,5 @@
-"""Entry point / re-export: model definitions.
+"""Re-export of the model code, kept because the assignment asks for a ``src/model.py`` file.
 
-Kept for the required project layout. Implementation lives in ``ecg.models``.
+The real code is in ``ecg.models``.
 """
 from ecg.models.registry import build_model  # noqa: F401

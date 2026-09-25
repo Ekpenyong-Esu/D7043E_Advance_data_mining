@@ -1,0 +1,103 @@
+\section{Business/Application Understanding}
+
+\subsection{Application Scenario}
+
+An electrocardiogram (ECG) records the electrical activity of the heart, and a cardiologist can tell from the shape and timing of each beat whether it is normal or originates from the wrong part of the heart. A day of continuous ECG contains around 100\,000 beats, so manual review of long recordings is impractical. Long-term monitoring depends on software that flags abnormal beats for the clinician to review.
+
+This project builds the first stage of such a system: a small neural network that classifies one heartbeat as normal, supraventricular ectopic, ventricular ectopic or fusion. Ectopic beats originate outside the sinus node. Supraventricular ectopic beats start above the ventricles and are often close to normal in shape. Ventricular ectopic beats start in the ventricles and typically have a wide, abnormal QRS complex. A fusion beat occurs when a normal and a ventricular activation coincide.
+
+Automatic beat classification is used in Holter recorders, hospital telemetry, wearable patches and smartwatches, and in screening where cardiologists are scarce. The target here is the wearable case, where running the classifier on the device has clear advantages over sending the signal to a server. The ECG stays on the device, which protects privacy. No network connection is needed. The result is available within milliseconds, which allows the device to alert the wearer. Transmitting raw ECG over a radio link also consumes far more energy than running a small model locally.
+
+Potential users are patients wearing a monitor at home, clinicians reviewing flagged beats, device manufacturers, and researchers studying how such models generalise across people. This is a course project. The model is not a medical device and no clinical validation is claimed.
+
+\subsection{Data Mining Objective}
+
+\begin{description}
+  \item[Input:] A fixed-length window of 256 samples (about 0.7 seconds at 360\,Hz) from a single ECG lead (MLII), cut around one annotated R-peak, filtered and normalised. The window covers 90 samples before the peak and 166 samples after it, so the model sees the P wave, the QRS complex and the T wave of one beat.
+  \item[Output:] One of four classes for that beat: N (normal-type), S (supraventricular ectopic), V (ventricular ectopic) or F (fusion).
+  \item[Type of task:] Supervised multiclass classification with four classes and a strong class imbalance.
+\end{description}
+
+\subsection{Project Objectives}
+
+\begin{enumerate}[nosep]
+  \item Distinguish N, S, V and F beats from a single-lead ECG window.
+  \item Generalise to people the model has never seen, using a record-independent split.
+  \item Stay usable when the ECG contains realistic noise from movement and muscle activity.
+  \item Keep the model small enough for an embedded device: well under 2\,MB of weights.
+  \item Make the model run on the MAX78002 CNN accelerator, verified by the Analog Devices software toolchain.
+\end{enumerate}
+
+\subsection{Success Criteria}
+
+Accuracy alone is not a meaningful target. Almost 90\,\% of beats are normal, so a model that always predicts N reaches 90\,\% accuracy and detects nothing. The project is judged on the criteria in Table~\ref{tab:success-criteria}, all measured once on the test set DS2.
+
+\begin{table}[H]
+  \centering
+  \caption{Success criteria. All are measured once, on DS2, after the model is frozen.}
+  \label{tab:success-criteria}
+  \rowcolors{2}{white}{rowtint}
+  \begin{tabularx}{\linewidth}{l Y Y}
+        \rowcolor{primaryblue}
+    \hd{Criterion} & \hd{Metric} & \hd{Target} \\
+    Predictive performance     & Macro-averaged F1 over the four classes on DS2 & $\geq 0.70$ \\
+    Minority class performance & Recall (sensitivity) for S and for F on DS2     & $\geq 0.50$ each; V recall $\geq 0.85$ \\
+    Noise robustness           & Drop in macro-F1 from clean ECG to 6\,dB SNR   & $\leq 0.15$ \\
+    Model complexity           & Number of parameters and INT8 weight size      & $\leq 100\,000$ parameters; $\leq 200$\,kB \\
+    MAX78002 compatibility     & ai8x quantisation and synthesis complete and produce C code & PASS on all four toolchain checks \\
+    \bottomrule
+  \end{tabularx}
+
+\end{table}
+
+In addition, the INT8 model must lose no more than 0.03 macro-F1 relative to the FP32 model, since only the INT8 model can be deployed.
+
+\subsection{Constraints}
+
+\textbf{Limited memory.} The MAX78002 accelerator has about 2\,MB of weight memory and a few hundred kilobytes for activations. Architectures common on GPUs do not fit.
+
+\textbf{Fixed-point arithmetic.} The accelerator computes with 8-bit integers. Weights and activations must be quantised, and the model has to survive that with little loss.
+
+\textbf{Class imbalance.} About nine in ten beats are normal and fusion beats are below 1\,\% of the data. A model can ignore the rare classes and still score well on accuracy.
+
+\textbf{Few subjects.} The database contains 47 people. Training on 22 records and testing on 22 others is a demanding generalisation task, and the rare classes are concentrated in a few records.
+
+\textbf{Noise.} Real wearable ECG contains baseline drift, muscle activity and electrode movement. The training data is comparatively clean hospital ECG.
+
+\textbf{Computational resources.} Training runs on a laptop or a modest GPU, which limits the size of hyperparameter searches.
+
+\textbf{No physical board.} No MAX78002 development kit is available. Deployment is verified in software only, and no measured latency, power or on-device accuracy is reported.
+
+\subsection{Risks and Challenges}
+
+\begin{table}[H]
+  \centering
+  \caption{Main project risks and how they are handled.}
+  \label{tab:risks}
+  \rowcolors{2}{white}{rowtint}
+  \begin{tabularx}{\linewidth}{Y Y Y}
+        \rowcolor{primaryblue}
+    \hd{Risk} & \hd{Why is it important?} & \hd{Proposed mitigation} \\
+    The model cannot be synthesised for the MAX78002 &
+    A model that does not run on the chip fails the main objective regardless of its accuracy. Discovering this late leaves no time to change the architecture. &
+    Run a tiny model through the whole ai8x toolchain before tuning accuracy, and repeat after every architecture change. Use only convolution, pooling, ReLU and one small linear layer. \\
+    \addlinespace
+    Poor recall on S and F beats &
+    S beats resemble normal beats and F beats are rare. Low recall on these classes makes the classifier of little clinical use. &
+    Class-weighted loss and oversampling of S and F; monitor per-class recall during model selection; widen the input window if S recall stays low. \\
+    \addlinespace
+    Optimistic results from data leakage &
+    Beats from the same person are highly similar. Any overlap between training and test inflates the score and hides the inter-patient gap. &
+    Split strictly by record (DS1/DS2), validate by record inside DS1, and block test-set evaluation in code until the model is frozen. \\
+    \addlinespace
+    Large accuracy loss after INT8 quantisation &
+    The deployed model is the INT8 one. If it is much worse than the FP32 model, the reported accuracy is not what the device delivers. &
+    Scale inputs to the accelerator range, build with ai8x layers from the start, try post-training quantisation first, use quantisation-aware fine-tuning if needed. \\
+    \addlinespace
+    Model breaks down under noise &
+    Wearable ECG is noisier than hospital ECG. A model that only works on clean signals is not useful in practice. &
+    Baseline-wander removal, noise augmentation during training, and a dedicated noise test at 12, 6 and 0\,dB. \\
+    \bottomrule
+  \end{tabularx}
+
+\end{table}

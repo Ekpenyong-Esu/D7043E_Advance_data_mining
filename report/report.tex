@@ -1,0 +1,109 @@
+\PassOptionsToPackage{table}{xcolor}
+\documentclass[times, 10pt]{thesisMDH}
+\usepackage[useregional]{datetime2}
+% Fonts: scalable Type 1 fonts (the class alone falls back to bitmap Computer Modern)
+\usepackage{mathpazo}                 % Palatino-style math
+\usepackage{tgpagella}                % TeX Gyre Pagella for body text
+\usepackage[scale=0.92]{tgheros}      % TeX Gyre Heros for sans-serif
+\usepackage{tgcursor}                 % TeX Gyre Cursor for monospace
+\linespread{1.06}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{ragged2e}
+\usepackage{etoolbox}
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}   % wrapped, left-aligned
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}    % wrapped, right-aligned
+\usepackage{colortbl}
+\usepackage{caption}
+\definecolor{rowtint}{RGB}{237, 242, 250}
+\captionsetup[table]{position=above, skip=6pt, font=small, labelfont={bf,color=primaryblue}}
+\captionsetup[figure]{skip=6pt, font=small, labelfont={bf,color=primaryblue}}
+\newcommand{\hd}[1]{\textcolor{white}{\textbf{#1}}}   % header cell
+\renewcommand{\arraystretch}{1.3}
+\AtBeginEnvironment{tabularx}{\small}
+\AtBeginEnvironment{tabular}{\small}
+\usepackage{siunitx}
+\usepackage{parskip}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{mathtools}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[pdfborder={0 0 0},colorlinks=true,urlcolor=blue,citecolor=red,bookmarks=false]{hyperref}
+
+% Colors
+\definecolor{primaryblue}{RGB}{30, 80, 162}
+\definecolor{lightgray}{RGB}{245, 245, 245}
+\definecolor{tpgreen}{RGB}{0, 128, 0}
+\definecolor{fpred}{RGB}{200, 0, 0}
+\definecolor{fnred}{RGB}{200, 0, 0}
+\definecolor{tnblue}{RGB}{0, 0, 180}
+
+% Section formatting
+\titleformat{\section}{\large\bfseries\color{primaryblue}}{\thesection}{0.6em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries\color{primaryblue}}{\thesubsection}{0.6em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\textcolor{gray}{\small ECG Heartbeat Classification for MAX78002}}
+\lhead{\textcolor{gray}{\small D7043E, Data Mining -- Group 16}}
+\rfoot{\thepage}
+
+% Useful macros
+\newcommand{\mat}[1]{\mathbf{#1}}
+\newcommand{\T}{\top}
+\newcommand{\tbd}[1][value]{\textcolor{fpred}{[#1]}}   % marks numbers to be filled from results/
+\graphicspath{{figures/}{images/}}
+
+\addbibresource{references.bib}
+
+% Template originally by henrik.falk@mdh.se; adapted for the D7043E ECG project, Group 16
+
+\fancyHeader{ECG Heartbeat Classification for MAX78002}{Ekpenyong, Sreenidhi, Sowmya}
+
+\university{Luleå Technical University}
+
+\department{School of Computer Science, Electrical and Space Engineering\\
+Luleå, Sweden}
+
+\subject{\textbf{Project Report\\ Group 16}\\ D7043E, Data Mining}
+\thesisTitle{ECG Heartbeat Classification for Edge AI on the MAX78002}
+
+\authorOne{Ekpenyong Esu Ekpenyong}{ekpekp-5@student.ltu.se}
+\authorTwo{Sreenidhi Thallam}{sretha-5@student.ltu.se}
+\authorThree{Sowmya Nelakurthi}{sownel-4@student.ltu.se}
+
+\examiner{Rajkumar Saini}{LTU, Luleå}
+%\supervisors{Supervisor\_Name (if any)\textsuperscript{1}}{University, location}
+%\companySupervisors{Supervisor\_Name (if any)\textsuperscript{1}}{Company name, location}
+
+\theDate{\today}
+
+\begin{document}
+\titlePage
+\tableofcontents
+\newpage
+
+\mainmatter
+% ===== Submission 1: CRISP-DM stages 1-3 =====
+\input{sections/01_business_understanding}
+\input{sections/02_data_understanding}
+\input{sections/03_data_preparation}
+
+% ===== Submission 2: CRISP-DM stages 4-6 =====
+\input{sections/04_modeling}
+\input{sections/05_evaluation}
+\input{sections/06_deployment}
+\input{sections/07_discussion}
+\input{sections/08_limitations}
+
+% ============================= References ============================
+\newpage
+\printbibliography
+\addcontentsline{toc}{section}{References}
+
+\end{document}
