@@ -1,6 +1,7 @@
 data/raw/*
 data/processed/*
 !data/raw/README.md
+!data/raw/RECORD_FILES.md
 !data/processed/README.md
 results/checkpoints/*.pth
 results/checkpoints/*.pkl
