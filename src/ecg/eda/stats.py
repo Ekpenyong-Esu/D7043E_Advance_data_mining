@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from ecg.constants import CLASS_NAMES, DS1, DS2, SYMBOL_TO_CLASS
+from ecg.data.channels import select_lead
 from ecg.data.labels import map_symbols
 from ecg.data.records import Record, read_record
 
@@ -60,7 +61,7 @@ def amplitude_stats(recs: dict[int, Record], lead: str) -> pd.DataFrame:
     for rid, r in recs.items():
         if lead not in r.sig_names:
             continue
-        x = r.signal[:, r.sig_names.index(lead)]
+        x = select_lead(r, lead)
         beat_mask = np.isin(r.ann_symbols, list(SYMBOL_TO_CLASS))  # only real beats, not noise marks
         peaks = r.ann_samples[beat_mask]
         rows.append({"record": rid, "min": x.min(), "max": x.max(), "std": x.std(),

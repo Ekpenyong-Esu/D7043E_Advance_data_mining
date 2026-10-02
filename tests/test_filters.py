@@ -4,7 +4,7 @@ import numpy as np
 from ecg.data.filters import remove_baseline_median, lowpass
 
 
-def test_median_baseline_removes_slow_drift(rng):
+def test_median_baseline_removes_slow_drift():
     fs = 360; t = np.arange(fs * 10) / fs
     drift = 0.5 * np.sin(2 * np.pi * 0.1 * t)         # slow wave, like baseline wander
     spikes = np.zeros_like(t); spikes[::fs] = 1.0      # one sharp "QRS" spike per second

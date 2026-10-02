@@ -1,6 +1,6 @@
 # Data preparation. Every number used by src/prepare_data.py lives here.
 seed: 42
-fs: 360      # The ECG machine took 369 measurements every second
+fs: 360      # The ECG machine took 360 measurements every second
 lead: MLII                      # selected by name, never by index (record 114 is swapped)
 
 paths:
@@ -10,9 +10,7 @@ paths:
   results: results
 
 records:
-  ds1: [101,106,108,109,112,114,115,116,118,119,122,124,201,203,205,207,208,209,215,220,223,230]
-  ds2: [100,103,105,111,113,117,121,123,200,202,210,212,213,214,219,221,222,228,231,232,233,234]
-  validation: [118,124,201,203,205]      # subset of ds1; train = ds1 - validation. Keeps 208 (most F beats) and 209 (most S beats) in training
+  validation: [118,124,201,203,205]      # subset of DS1; train = DS1 - validation. DS1 and DS2 are in src/ecg/constants.py. Keeps 208 (most F beats) and 209 (most S beats) in training
 
 beat:
   samples_before: 90 # To capture the P value before the R peak

@@ -3,9 +3,6 @@ data/processed/*
 !data/raw/README.md
 !data/raw/RECORD_FILES.md
 !data/processed/README.md
-results/checkpoints/*.pth
-results/checkpoints/*.pkl
-max78002/synthesis_output/*/
 .venv/
 venv/
 __pycache__/
@@ -14,7 +11,6 @@ __pycache__/
 .pytest_cache/
 logs/
 *.log
-!**/.gitkeep
 .mypy_cache/
 .ruff_cache/
 # LaTeX

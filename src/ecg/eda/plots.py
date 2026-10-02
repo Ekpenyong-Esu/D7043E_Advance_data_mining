@@ -6,14 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from ecg.constants import CLASS_NAMES, SYMBOL_TO_CLASS
+from ecg.constants import CLASS_NAMES, FS_HZ, SYMBOL_TO_CLASS
+from ecg.data.channels import select_lead
 from ecg.data.records import Record
 from ecg.eda.style import CLASS_COLORS, INK_SOFT
-
-
-def _lead(r: Record, lead: str) -> np.ndarray:
-    """Return the 1-D signal of one lead, picked by name."""
-    return r.signal[:, r.sig_names.index(lead)]
 
 
 def raw_signal(r: Record, seconds: float = 10.0, start_s: float = 0.0):
@@ -36,14 +32,14 @@ def raw_signal(r: Record, seconds: float = 10.0, start_s: float = 0.0):
 def class_examples(recs: dict[int, Record], lead: str, before: int, after: int, n_per_class: int = 15):
     """One panel per class. Several beats are drawn on top of each other, lined up on the R-peak."""
     fig, axes = plt.subplots(1, 4, figsize=(7.0, 2.2), sharey=True)
-    t = np.arange(-before, after) / 360 * 1000  # time axis in ms, 0 at the R-peak
+    t = np.arange(-before, after) / FS_HZ * 1000  # time axis in ms, 0 at the R-peak
     for ax, cls in zip(axes, CLASS_NAMES):
         drawn = 0
         # Walk through the records and beats until we have enough examples of this class.
         for r in recs.values():
             if lead not in r.sig_names:
                 continue
-            x = _lead(r, lead)
+            x = select_lead(r, lead)
             for p, s in zip(r.ann_samples, r.ann_symbols):
                 if SYMBOL_TO_CLASS.get(s) != cls or p - before < 0 or p + after > len(x):
                     continue
@@ -115,7 +111,7 @@ def noisy_examples(noisy_recs: list[Record], noise: dict[str, np.ndarray], lead:
     # Noisy records: start just before the first noise mark, so the noise is visible.
     for ax, r in zip(axes, noisy_recs):
         start = _first_noise_mark(r) or 0
-        ax.plot(t, _lead(r, lead)[start:start + len(t)], color=CLASS_COLORS["N"], linewidth=0.8)
+        ax.plot(t, select_lead(r, lead)[start:start + len(t)], color=CLASS_COLORS["N"], linewidth=0.8)
         ax.set_ylabel(f"rec {r.record_id}", rotation=0, ha="right", va="center")
     # Pure noise signals from the NSTDB.
     for ax, (name, x) in zip(axes[len(noisy_recs):], noise.items()):
@@ -129,7 +125,7 @@ def _first_noise_mark(r: Record) -> int | None:
     """Sample index one second before the first ``~`` (noise) annotation, or None if there is none."""
     for p, s in zip(r.ann_samples, r.ann_symbols):
         if s == "~":
-            return max(0, int(p) - 360)
+            return max(0, int(p) - r.fs)
     return None
 
 

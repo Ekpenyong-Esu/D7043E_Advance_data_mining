@@ -1,7 +1,0 @@
-name: baseline_rf
-seed: 42
-data: configs/preprocess.yaml
-model:
-  type: random_forest
-  n_estimators: 200
-  class_weight: balanced

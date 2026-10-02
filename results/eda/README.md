@@ -16,4 +16,4 @@ How they connect:
 - `src/make_eda_figures.py` calls the functions in `src/ecg/eda/stats.py` on the raw records and saves each returned table here.
 - `class_totals.csv` is built from `class_counts_per_record.csv`, which is built with the same mapping as `../label_mapping.json`.
 - The figures in `report/figures/eda_*.png` are drawn from these same tables by `src/ecg/eda/plots.py`.
-- `src/fill_report_numbers.py` reads `class_totals.csv` for the class table in report section 2.2.
+- The class table in report section 2.2 quotes `class_totals.csv`.

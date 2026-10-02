@@ -1,1 +1,1 @@
-"""Noise Stress Test Database handling and SNR experiments."""
+"""Noise Stress Test Database loading."""

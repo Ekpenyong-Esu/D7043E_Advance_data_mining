@@ -1,781 +1,187 @@
-# D7043E Project: ECG Heartbeat Classification for MAX78002 Edge AI
+# ECG Heartbeat Classification for Edge AI (MAX78002): Submission 1
 
-> Project Option for Data Science and Non-AI programs (Only if you have NOT worked on this project before); alternatively, you as a group can work on your own project.
+Course project for D7043E at Luleå University of Technology (LTU). The full project builds a 1D CNN that classifies single ECG heartbeats from the MIT-BIH Arrhythmia Database into four classes (N, S, V, F), and prepares it for the Analog Devices MAX78002. The work follows CRISP-DM.
 
-- At most 5 members can be in a group; one student cannot join more than one group. PhD students must do the project alone.
-- Make sure to decide on your group in the 1st week of the course. Please join any group (some empty groups have already been created) in Canvas as soon as possible. You can do that in the People section.
-- You can choose a project provided by the teachers, OR bring your own group project.
-- Students in AI programs (TCAIA, TMDIA) at LTU must do Deep Learning in the provided project OR do a project that is Deep Learning based.
-- To All, you are NOT allowed to do the same project you have done before (or are doing currently) in any course you have/had studied at LTU.
+This package is Submission 1. It covers the first three CRISP-DM stages: business understanding, data understanding and data preparation. No model is trained yet.
 
----
+This is a course project. Nothing here is a medical device and nothing is clinically validated. No physical MAX78002 board is used.
 
-## 1. Project Overview
+## 1. Project goal
 
-In this project, you will develop a compact machine-learning/deep-learning system for **ECG heartbeat classification**.
+Classify single ECG heartbeats into four AAMI classes while meeting the Edge-AI limits: model size under 2 MB, INT8 inference, and only operations the MAX78002 CNN accelerator supports.
 
-The project represents the first, ECG-only stage of a larger wearable cardiac-monitoring problem. No motion sensor or IMU data will be used.
+| Class | Meaning                        |
+|-------|--------------------------------|
+| N     | Normal-type beats              |
+| S     | Supraventricular ectopic beats |
+| V     | Ventricular ectopic beats      |
+| F     | Fusion beats                   |
 
-The intended deployment platform is the **Analog Devices MAX78002 Edge-AI microcontroller**. However:
+Paced and unclassifiable beats (`/`, `f`, `Q`) are excluded. The exclusion is documented in the report and in `results/label_mapping.json`.
 
-- No physical MAX78002 development kit will be provided or required.
-- Your task is therefore to develop a model that is compatible with the MAX78002 deployment workflow, demonstrate software-level quantization and synthesis, and critically evaluate its performance.
+## 2. Datasets
 
-The project must be carried out according to the **CRISP-DM methodology**:
+| Dataset | Use in Submission 1 | Source |
+|---------|---------------------|--------|
+| MIT-BIH Arrhythmia Database (`mitdb`) | Training, validation and test data | https://physionet.org/content/mitdb/1.0.0/ |
+| MIT-BIH Noise Stress Test Database (`nstdb`) | Noisy-ECG examples in the EDA | https://physionet.org/content/nstdb/1.0.0/ |
 
-1. Business/Application Understanding
-2. Data Understanding
-3. Data Preparation
-4. Modeling
-5. Evaluation
-6. Deployment
+mitdb has 48 records from 47 subjects, 2 channels, 360 Hz, about 30 minutes each, and about 110 000 expert beat annotations.
 
-CRISP-DM is iterative stands for Cross-Industry Standard Process for Data Mining. You are expected to return to earlier stages when later experiments reveal problems.
+Raw data is not committed to this repository. See Section 5 for download instructions.
 
----
+### Inter-patient split (de Chazal protocol)
 
-## 2. Problems
+Records are assigned whole to one split. Beats from one record never appear in two splits.
 
-The goal is to classify ECG heartbeats into clinically meaningful heartbeat categories while satisfying the computational constraints of an Edge-AI device (maximum model size 2 MB).
+| Split | Records |
+|-------|---------|
+| DS1 (train and validation, split by record) | 101, 106, 108, 109, 112, 114, 115, 116, 118, 119, 122, 124, 201, 203, 205, 207, 208, 209, 215, 220, 223, 230 |
+| DS2 (final test, untouched until final evaluation) | 100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210, 212, 213, 214, 219, 221, 222, 228, 231, 232, 233, 234 |
 
-### Required classification task
+The validation records within DS1 are listed in `configs/preprocess.yaml`. The rest of DS1 is the training set.
 
-Use the MIT-BIH Arrhythmia Database and perform **four-class heartbeat classification**:
-
-| Class | Description |
-|-------|-------------|
-| N | Normal-type beats |
-| S | Supraventricular ectopic beats |
-| V | Ventricular ectopic beats |
-| F | Fusion beats |
-
-Use the standard MIT-BIH annotations to construct the classes.
-
-Rare paced/unclassifiable beats that do not belong to the four required classes may be excluded, but all exclusions must be documented.
-
-### Important
-
-You are not developing a medical device and you must not claim that your model is clinically validated.
-
-The purpose is to study the complete data-mining and Edge-AI development process.
-
----
-
-## 3. Main Dataset
-
-### MIT-BIH Arrhythmia Database
-
-The primary dataset contains:
-
-- 48 approximately 30-minute ECG recordings
-- 47 subjects
-- two ECG channels
-- sampling frequency of 360 Hz
-- expert beat annotations
-- approximately 110,000 beat annotations
-
-For the main experiment, use a **patient/record-independent training and testing strategy**.
-
-Do not randomly distribute beats from the same recording between training and testing.
-
-### Recommended test protocol
-
-Use the commonly used inter-patient MIT-BIH partition.
-
-**DS1 — Development set**
-
-101, 106, 108, 109, 112, 114, 115, 116, 118, 119, 122, 124, 201, 203, 205, 207, 208, 209, 215, 220, 223, 230
-
-Use DS1 for:
-
-- training
-- validation
-- model selection
-- hyperparameter selection
-
-The internal training/validation split must again be performed **by record**, not randomly by heartbeat.
-
-**DS2 — Final test set**
-
-100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210, 212, 213, 214, 219, 221, 222, 228, 231, 232, 233, 234
-
-DS2 must remain untouched until final evaluation.
-
----
-
-## 4. Robustness Dataset
-
-### MIT-BIH Noise Stress Test Database
-
-Real ECG recordings contain noise caused by factors such as:
-
-- baseline wander
-- muscle/EMG activity
-- electrode movement
-
-The Noise Stress Test Database provides representative ECG noise signals.
-
-Your final system must therefore include a **noise-robustness experiment**.
-
-At minimum, evaluate the model under:
-
-- clean ECG
-- moderate noise
-- loud noise
-
-Recommended SNR conditions include approximately:
-
-- 12 dB
-- 6 dB
-- 0 dB
-
-You may add noise from the Noise Stress Test Database to held-out ECG signals.
-
-The noise experiment must never be used to leak information from the final test set into model training.
-
----
-
-## 5. Edge AI Constraint
-
-The target platform is: **Analog Devices MAX78002**
-
-The model should therefore be designed as an embedded/Edge-AI model rather than an unrestricted data center model.
-
-Prefer operations supported by the MAX78002 CNN accelerator, particularly:
-
-- 1D convolution
-- pooling
-- ReLU-type activation
-- compact fully connected output layers
-- fixed-size inputs
-
-Avoid architectures that cannot reasonably be deployed using the MAX78002 CNN accelerator.
-
-Examples of architectures that should generally be avoided for this assignment include unrestricted:
-
-- Transformers
-- very large ResNets
-- LSTMs/GRUs
-- models requiring hundreds of MB of parameters
-- unsupported custom operations
-
-A small 1D CNN is an appropriate starting point.
-
-You may develop a better architecture if you can demonstrate that it remains compatible with the MAX78002 toolchain.
-
----
-
-## 6. Required Experiments
-
-At minimum, your final project must contain:
-
-- A simple baseline
-- A compact neural-network model
-- FP32 model results
-- INT8/quantized model results
-- Patient-independent evaluation
-- Per-class evaluation
-- Noise robustness evaluation
-- MAX78002 software synthesis/deployment analysis
-
-You are encouraged to investigate issues such as:
-
-- class imbalance
-- normalization
-- filtering
-- ECG window size
-- data augmentation
-- loss functions
-- model size
-- quantization-aware training
-- robustness versus model complexity
-
----
-
-# PROJECT SUBMISSION Task 1: CRISP-DM: Problem, Data and Preparation
-
-Submission 1 covers the first three CRISP-DM stages.
-
-Your report must use the following sections.
-
-## 1. Business/Application Understanding
-
-### 1.1 Application Scenario
-
-Explain:
-
-- What problem are you trying to solve?
-- Where could automatic ECG classification be useful?
-- Why might inference directly on an Edge-AI device be useful?
-- Who could potentially use such a system?
-
-### 1.2 Data Mining Objective
-
-Clearly state the machine-learning problem.
-
-Complete:
-
-- **Input:** [Describe exactly what the model receives.]
-- **Output:** [Describe the classes predicted by the model.]
-- **Type of task:** [Classification, multiclass classification, etc.]
-
-### 1.3 Project Objectives
-
-List your technical objectives.
-
-For example:
-
-- distinguish N/S/V/F heartbeats
-- generalize to unseen ECG recordings
-- remain robust to ECG noise
-- develop a compact model
-- make the model compatible with MAX78002
-
-### 1.4 Success Criteria
-
-Define how you will decide whether the project has succeeded.
-
-Include criteria for:
-
-- Predictive performance
-- Minority class performance
-- Noise robustness
-- Model complexity
-- MAX78002 compatibility
-
-You must define measurable criteria rather than simply stating "high accuracy".
-
-### 1.5 Constraints
-
-Discuss:
-
-- limited Edge-AI memory
-- fixed-point/INT8 computation
-- class imbalance
-- limited number of subjects
-- noise
-- computational resources
-- absence of physical MAX78002 hardware
-
-### 1.6 Risks and Challenges
-
-Identify at least three important risks.
-
-For each:
-
-| Risk | Why is it important? | Proposed mitigation |
-|------|----------------------|---------------------|
-|      |                      |                     |
-
-## 2. Data Understanding
-
-### 2.1 Dataset Description
-
-Report:
-
-- database name
-- number of records
-- number of subjects
-- number of channels
-- sampling frequency
-- recording duration
-- annotation type
-- ECG leads available
-
-### 2.2 Target Classes
-
-Create a table containing:
-
-| Final class | Original annotations included | Number of beats |
-|-------------|-------------------------------|-----------------|
-| N           |                               |                 |
-| S           |                               |                 |
-| V           |                               |                 |
-| F           |                               |                 |
-
-Explain any annotations that you excluded.
-
-### 2.3 Exploratory Data Analysis
-
-At a minimum, show:
-
-- ECG signal example
-- example heartbeat from each class
-- class distribution
-- subject/record distribution
-- signal amplitude distribution
-- examples of noisy ECG
-
-### 2.4 Data Quality
-
-Investigate:
-
-- missing data
-- extreme amplitudes
-- corrupted segments
-- class imbalance
-- differences between recordings
-- differences between ECG channels
-- possible noisy regions
-
-### 2.5 Leakage Analysis
-
-Explain how data leakage could occur in this project.
-
-Specifically explain why:
-
-> Randomly splitting individual heartbeats from the same subject into training and test sets can produce misleading results.
-
-State exactly how your approach prevents this.
-
-## 3. Data Preparation
-
-### 3.1 Record Selection
-
-List exactly which records are used for:
-
-- training
-- validation
-- testing
-
-### 3.2 ECG Channel Selection
-
-State:
-
-- which ECG channel/lead you use
-- why did you choose it
-- what do you do if the same lead is not available in a recording
-
-### 3.3 Beat Extraction
-
-Description:
-
-- how R-peak annotations are obtained
-- samples before the annotated beat
-- samples after the annotated beat
-- final input length
-
-Your network must receive a fixed-size input.
-
-### 3.4 Signal Preprocessing
-
-State exactly which operations are performed and in which order.
-
-For example:
+## 3. Repository layout
 
 ```
-Raw ECG
-→ filtering
-→ segmentation
-→ normalization
-→ clipping
-→ model input
-```
-
-For every preprocessing operation explain why it is necessary.
-
-### 3.5 Label Preparation
-
-Document the complete mapping:
-
-```
-Original MIT-BIH annotation → final N/S/V/F class
-```
-
-### 3.6 Class Imbalance
-
-Report the imbalance.
-
-Explain whether you will use:
-
-- class weights
-- oversampling
-- undersampling
-- balanced batches
-- focal loss
-- another strategy
-- no balancing
-
-Justify your decision.
-
-### 3.7 Data Augmentation
-
-Describe any augmentation used during training.
-
-Possible examples include:
-
-- amplitude scaling
-- small temporal shifts
-- ECG noise
-- baseline wander
-
-Augmentation must only be applied to the training data.
-
-### 3.8 Final Dataset
-
-Report:
-
-| Split      | Subjects/records | N | S | V | F | Total |
-|------------|------------------|---|---|---|---|-------|
-| Train      |                  |   |   |   |   |       |
-| Validation |                  |   |   |   |   |       |
-| Test       |                  |   |   |   |   |       |
-
-### 3.9 Reproducibility
-
-State:
-
-- software versions
-- random seed
-- preprocessing parameters
-- sampling frequency
-- input size
-
-## Submission 1 Deliverables
-
-Submit:
-
-- CRISP-DM Report — Stages 1–3
-- EDA notebook
-- Data preparation code
-- Generated train/validation/test statistics
-- README describing how to reproduce the preprocessing
-
-No final neural network results are required at this stage.
-
----
-
-# PROJECT SUBMISSION Task 2: CRISP-DM: Modeling, Evaluation and Deployment
-
-Submission 2 completes the project.
-
-You may revise your conclusions from Submission 1 if your experiments reveal problems. Document significant changes and explain why they were made.
-
-## 4. Modeling
-
-### 4.1 Baseline
-
-Implement at least one simple baseline.
-
-Examples:
-
-- Logistic Regression
-- Random Forest
-- SVM
-- CNN
-- very small neural network
-
-Report its performance.
-
-### 4.2 Proposed Edge Model
-
-Describe your final neural-network architecture.
-
-Provide a table:
-
-| Layers | Input | Operation | Output | Parameters |
-|--------|-------|-----------|--------|------------|
-|        |       |           |        |            |
-
-Explain why this architecture is appropriate for Edge-AI.
-
-### 4.3 Training Configuration
-
-Report:
-
-- optimizer
-- learning rate
-- batch size
-- epochs
-- loss function
-- early stopping
-- class weighting
-- augmentation
-- random seed
-
-### 4.4 Model Selection
-
-Explain:
-
-- which models did you try?
-- which hyperparameters were varied
-- which validation metric selected the final model
-- why the final architecture was selected
-
-### 4.5 Quantization
-
-Compare:
-
-- FP32 model
-
-versus
-
-- INT8/quantized model
-
-If Quantization-Aware Training is used, explain:
-
-- why QAT is needed
-- how it was performed
-- whether quantization changed model performance
-
-## 5. Evaluation
-
-Do not report accuracy alone.
-
-At minimum report:
-
-- Accuracy
-- Macro F1 score
-- Per-class Precision
-- Per-class Recall/Sensitivity
-- Per-class F1 score
-- Confusion matrix
-
-### 5.1 Clean Test Results
-
-| Metric           | Baseline | FP32 Edge Model | Quantized Model |
-|------------------|----------|-----------------|-----------------|
-| Accuracy         |          |                 |                 |
-| Macro F1         |          |                 |                 |
-| Model parameters |          |                 |                 |
-
-### 5.2 Per-Class Performance
-
-| Class | Precision | Sensitivity/Recall | F1 |
-|-------|-----------|--------------------|----|
-| N     |           |                    |    |
-| S     |           |                    |    |
-| V     |           |                    |    |
-| F     |           |                    |    |
-
-Discuss which classes are difficult and why.
-
-### 5.3 Quantization Analysis
-
-Report:
-
-- FP32 Macro F1: ______
-- INT8 Macro F1: ______
-- Difference: ______
-
-Discuss the effect of quantization.
-
-### 5.4 Noise Robustness
-
-Evaluate the final model under progressively increasing ECG noise.
-
-| Condition | Accuracy | Macro F1 |
-|-----------|----------|----------|
-| Clean     |          |          |
-| 12 dB     |          |          |
-| 6 dB      |          |          |
-| 0 dB      |          |          |
-
-Plot performance versus noise level.
-
-Discuss:
-
-- which classes are most affected
-- whether degradation is gradual
-- whether preprocessing helps
-- whether robustness could be improved
-
-### 5.5 Error Analysis
-
-Select representative errors and investigate them.
-
-Include examples such as:
-
-- N classified as S
-- S classified as N
-- V classified incorrectly
-- errors under strong noise
-
-Do not only show numerical results. Examine the ECG waveforms.
-
-### 5.6 Success Criteria Review
-
-Return to the success criteria defined in Submission 1.
-
-For each criterion report:
-
-- Achieved / Partially achieved / Not achieved
-
-and justify your conclusion.
-
-## 6. Deployment
-
-For this course, "deployment" means software-level preparation for deployment to the MAX78002.
-
-A physical development kit is not required.
-
-### 6.1 MAX78002 Compatibility
-
-Explain:
-
-- why the architecture can run on the MAX78002 CNN accelerator
-- which layer types are used
-- input dimensions
-- output dimensions
-- model parameter count
-
-### 6.2 MAX78002 Toolchain
-
-Use the Analog Devices:
-
-- ai8x training framework
-- ai8x-synthesis framework
-
-Attempt to:
-
-- prepare the model using the MAX78002-compatible training framework
-- quantize the model
-- synthesize the model for MAX78002
-- generate the device-specific output/C code
-
-### 6.3 Deployment Evidence
-
-Provide evidence of the synthesis process.
-
-Report:
-
-| Requirements                             | Results     |
-|------------------------------------------|-------------|
-| Model accepted by MAX78002 toolchain     | PASS / FAIL |
-| Quantization completed                   | PASS / FAIL |
-| Synthesis completed                      | PASS / FAIL |
-| C/device files generated                 | PASS / FAIL |
-| Weight memory requirement                |             |
-| Data memory requirement                  |             |
-
-If synthesis fails, identify exactly why and modify the architecture if possible.
-
-A model that obtains excellent accuracy but cannot be synthesized for the MAX78002 does not fully satisfy the project objective.
-
-### 6.4 Hardware Limitations
-
-Because no physical board is supplied, you must not claim measured hardware values for:
-
-- inference latency
-- power consumption
-- energy per inference
-- real MAX78002 accuracy
-- real-time performance
-
-Clearly distinguish:
-
-- Software verified
-
-versus
-
-- Hardware verified.
-
-### 6.5 Proposed Hardware Validation
-
-Briefly explain how you would test the model if a MAX78002 kit became available.
-
-Includes:
-
-- loading the generated model
-- supplying identical ECG test inputs
-- comparing Python and hardware outputs
-- checking intermediate/final output consistency
-- measuring inference time
-- measuring energy consumption
-
-## 7. Final Discussion
-
-Discuss:
-
-- What did you learn from the data?
-- What was the biggest source of error?
-- Was the highest-accuracy model also the best Edge-AI model?
-- How much performance was lost after quantization?
-- How sensitive was the system to ECG noise?
-- What compromises were necessary because of hardware constraints?
-- What would you change with more time?
-
-## 8. Limitations
-
-At a minimum, discuss:
-
-- limited dataset size
-- class imbalance
-- differences between patients
-- use of historical ECG datasets
-- absence of prospective clinical testing
-- lack of hardware testing
-- possible domain shift to wearable ECG devices
-
-## 9. Final Submission Package
-
-If not using python, submit equivalent structure with your files.
-
-Submit one compressed project folder containing:
-
-```
-GroupXX_ECG_Project/
-│
-├── report.pdf
-├── README.md
+D7043E/
+├── README.md              this file: install, download, reproduce
+├── report.pdf             the report, CRISP-DM stages 1 to 3
 ├── requirements.txt
-│
-├── notebooks/
-│   └── EDA.ipynb
-│
-├── src/
-│   ├── prepare_data.py
-│   ├── dataset.py
-│   ├── model.py
-│   ├── train.py
-│   ├── evaluate.py
-│   └── noise_test.py
-│
-├── configs/
-│
-├── results/
-│   ├── metrics.csv
-│   ├── confusion_matrix.*
-│   └── noise_results.*
-│
-└── max78002/
-    ├── model_configuration
-    ├── quantization_output
-    └── synthesis_output
+├── pyproject.toml         pytest, ruff and mypy settings
+├── Makefile               data, prepare, eda, test, report
+├── configs/               preprocess.yaml, the settings every script reads
+├── data/                  raw and processed data, git-ignored
+├── notebooks/             EDA.ipynb
+├── src/                   entry-point scripts and the ecg/ package
+├── tests/                 pytest
+├── results/               tables written by the pipeline
+└── report/                LaTeX sources, compiles to report.pdf
 ```
 
-Do not submit the complete raw PhysioNet datasets.
+Each folder has a short README that says which file to read first, what every file is for, and how the files connect.
 
-Your README must provide instructions for downloading the required data.
+### Where to start reading
 
-## 10. Recommended Project Resources
+1. This file, for setup and the commands.
+2. `configs/README.md`, then `configs/preprocess.yaml`, for the settings everything reads.
+3. `src/README.md`, then `src/ecg/README.md`, then the subpackage READMEs in the order they list.
+4. `results/README.md` and `report/README.md`, to see where the outputs go.
 
-Students should use the following resources supplied on the course page:
+### How the pieces connect
 
-**Required**
+- `configs/preprocess.yaml` holds the settings. Both scripts in `src/` start by loading it.
+- `src/prepare_data.py` reads `data/raw/` and writes `data/processed/` and the tables in `results/`.
+- `src/make_eda_figures.py` reads `data/raw/` and writes `results/eda/` and `report/figures/`.
+- `notebooks/EDA.ipynb` shows the same analysis. It calls the same functions as `src/make_eda_figures.py`.
+- `report/` includes figures from `report/figures/` and quotes the numbers in `results/`.
 
-- MIT-BIH Arrhythmia Database — PhysioNet
-- MIT-BIH Noise Stress Test Database — PhysioNet
-- WFDB Python package
-- MAX78002 product documentation
-- Analog Devices MAX78000/MAX78002 AI documentation
-- Analog Devices ai8x training repository
-- Analog Devices ai8x synthesis repository
-- CRISP-DM reference material
+## 4. Installation
 
-**Optional**
+Python 3.10 or 3.11. `uv` is used because `python -m venv` may lack `ensurepip` on WSL.
 
-- European ST-T Database
-- additional published literature on ECG classification and Edge-AI
+```bash
+uv venv .venv --python 3.10
+uv pip install --python .venv/bin/python -r requirements.txt
+.venv/bin/python -m ipykernel install --user --name d7043e --display-name "Python (D7043E)"
+```
 
-## Important Rules
+Main dependencies: `wfdb`, `numpy`, `scipy`, `pandas`, `matplotlib`, `pyyaml`, `jupyter`.
 
-- Do not randomly mix beats from the same ECG recording across training and testing.
-- Do not use the final DS2 test set for model selection.
-- Do not optimize hyperparameters using test-set performance.
-- Do not report accuracy alone.
-- Do not claim clinical validation.
-- Do not claim measurements from MAX78002 hardware when no board was used.
-- Your submitted model must be designed for MAX78002 compatibility.
-- All preprocessing, exclusions and class mappings must be reproducible.
-- The project must follow and explicitly document all six CRISP-DM stages.
+## 5. Downloading the data
+
+Download both databases into `data/raw/`. Do not commit them.
+
+```bash
+# Option A: the Makefile target (uses the wfdb helper)
+make data
+
+# Option B: the wfdb helper by hand
+mkdir -p data/raw
+python -c "import wfdb; wfdb.dl_database('mitdb', 'data/raw/mitdb')"
+python -c "import wfdb; wfdb.dl_database('nstdb', 'data/raw/nstdb')"
+
+# Option C: wget
+wget -r -N -c -np -nH --cut-dirs=3 -P data/raw/mitdb https://physionet.org/files/mitdb/1.0.0/
+wget -r -N -c -np -nH --cut-dirs=3 -P data/raw/nstdb https://physionet.org/files/nstdb/1.0.0/
+```
+
+If the download fails with an SSL certificate error (common behind a proxy or in WSL), point Python at the system certificate store first. `make data` already does this.
+
+```bash
+export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+```
+
+Expected layout afterwards:
+
+```
+data/raw/mitdb/100.dat  100.hea  100.atr  ...
+data/raw/nstdb/bw.dat   em.dat   ma.dat   ...
+```
+
+## 6. Reproducing the preprocessing
+
+The random seed and all preprocessing parameters are in `configs/preprocess.yaml`.
+
+```bash
+# 1. Preprocess and build the splits. Writes data/processed/*.npz and the tables in results/
+make prepare
+# the same without make:
+python src/prepare_data.py --config configs/preprocess.yaml
+
+# 2. EDA figures and tables for report section 2
+make eda
+# or open the notebook
+jupyter notebook notebooks/EDA.ipynb
+
+# 3. Run the tests
+make test
+
+# 4. Build report.pdf
+make report
+```
+
+Outputs:
+
+| File | Content |
+|------|---------|
+| `data/processed/train.npz`, `val.npz`, `test.npz` | The beats, labels, record ids and RR features of each split |
+| `results/split_stats.csv` | Beats per class per split (report table 3.8) |
+| `results/record_stats.csv` | The same per record, plus dropped and excluded counts |
+| `results/label_mapping.json` | The symbol to class mapping |
+| `results/eda/` | Tables for report section 2 |
+| `report/figures/` | Figures for report sections 2 and 3 |
+
+### Preprocessing steps
+
+1. Read the MLII lead of each record at 360 Hz.
+2. Remove baseline wander with two median filters, then remove fast noise with a 40 Hz low-pass filter.
+3. Cut a fixed window of 256 samples around each annotated R-peak.
+4. Normalise each beat.
+5. Clip extreme values.
+6. Compute the RR-interval features of each beat.
+
+The exact parameters (window size, filter cut-offs, normalisation method, seed) are in `configs/preprocess.yaml` and in report section 3.9.
+
+## 7. Edge-AI constraints (MAX78002)
+
+The model comes in Submission 2. It must meet these limits, and they already shape the data preparation:
+
+- Model size under 2 MB, INT8 weights.
+- Only accelerator-supported operations: `Conv1d`, `MaxPool1d` or `AvgPool1d`, `ReLU`, a small `Linear` output layer.
+- Fixed-size input. This is why every beat is cut to the same 256 samples.
+- A bounded input range. This is why every beat is normalised and clipped.
+
+## 8. Group
+
+| Name | Programme | Role |
+|------|-----------|------|
+|      |           |      |
+
+## 9. References
+
+- Moody GB, Mark RG. *The impact of the MIT-BIH Arrhythmia Database.* IEEE Eng Med Biol, 2001.
+- Moody GB, Muldrow WE, Mark RG. *A noise stress test for arrhythmia detectors.* Computers in Cardiology, 1984.
+- de Chazal P, O'Dwyer M, Reilly RB. *Automatic classification of heartbeats using ECG morphology and heartbeat interval features.* IEEE TBME, 2004. (DS1/DS2 protocol)
+- Analog Devices, MAX78002 documentation: https://www.analog.com/en/products/max78002.html
+- WFDB Python package: https://github.com/MIT-LCP/wfdb-python
