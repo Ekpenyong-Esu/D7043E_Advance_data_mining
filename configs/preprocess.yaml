@@ -1,3 +1,11 @@
+# ECG wave names:
+#   P wave      = atrial depolarization (atria activate and contract)
+#                 heart part: atria (upper chambers), triggered by the SA node (natural pacemaker)
+#   QRS complex = ventricular depolarization (the main beat); R peak = its tallest point
+#                 heart part: ventricles (lower chambers), signal via AV node -> bundle of His -> Purkinje fibres
+#   T wave      = ventricular repolarization (ventricles reset for the next beat)
+#                 heart part: ventricles (lower chambers)
+#
 # Data preparation. Every number used by src/prepare_data.py lives here.
 seed: 42
 fs: 360      # The ECG machine took 360 measurements every second
@@ -13,16 +21,17 @@ records:
   validation: [118,124,201,203,205]      # subset of DS1; train = DS1 - validation. DS1 and DS2 are in src/ecg/constants.py. Keeps 208 (most F beats) and 209 (most S beats) in training
 
 beat:
-  samples_before: 90 # To capture the P value before the R peak
-  samples_after: 166              # To capture the T value after the R peak; total window = 256
+  samples_before: 90 # To capture the P (atrial) value before the R (ventricular) the tallest peak
+  samples_after: 166              # To capture the T (ventricular) value after the R peak; total window = 256
 
 filter:
   enabled: true
   method: median                  # median | highpass | none
   median_kernels_ms: [200, 600]
   highpass_hz: 0.5
-  lowpass_hz: 40                  # set null to disable
+  lowpass_hz: 40                  # remove noise above 40 Hz
 
 normalize:
-  method: zscore                  # zscore | maxabs | none
+  method: zscore                  # zscore, each beats is scaled to the mean zero and standard deviation of one
   clip: 8.0                       # clip to [-clip, clip] after normalization. R-peaks reach 5-7 std, so 4 would flatten most of them
+                                  # values are then capped at ±8 to limit extreme outliers. A cap of 4 would cut off R-peaks, which reach 5–7 standard deviations.

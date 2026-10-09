@@ -3,7 +3,7 @@
 Every record in the database is stored as three files with the same name:
   NNN.dat  the ECG signal
   NNN.hea  the header (sampling rate, channel names, units)
-  NNN.atr  the annotations (where each beat is and what type it is)
+  NNN.atr  the annotations (where/what each beat is and what type it is)
 The wfdb library reads these files for us.
 """
 from dataclasses import dataclass

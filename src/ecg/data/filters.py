@@ -3,6 +3,14 @@
 The main job is to remove baseline wander: the slow up-and-down drift caused
 by breathing and electrode movement. An optional low-pass filter can also
 remove fast noise such as muscle activity.
+
+Baseline wander is low-frequency noise (below about 0.5 Hz) that makes the
+whole signal drift up and down while the beat shapes stay the same. Causes:
+  - breathing: the chest moves, shifting the heart and electrodes (about 0.15-0.3 Hz)
+  - body movement: the patient shifts or moves around
+  - electrode contact: sweat, loose electrodes or gel drying out change the skin resistance
+It must be removed so beats are compared by their shape, not by where they sit
+vertically. In the MIT-BIH Noise Stress Test Database it is the "bw" record.
 """
 import numpy as np
 from scipy.ndimage import median_filter
