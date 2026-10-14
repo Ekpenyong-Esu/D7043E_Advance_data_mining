@@ -33,12 +33,24 @@ A single lead, MLII, is used. It is present in every record used, it is the lead
 The lead is selected by its name in the record header rather than by position, because in record 114 MLII is stored as the second channel. If a record has no MLII the script raises an error rather than substituting another lead. This only affects records 102 and 104, which are excluded.
 
 \subsection{Beat Extraction}
+\label{sec:beat-extraction}
 
 No beat detector is used. R-peak positions are taken from the expert annotation files, which is the standard approach for this database and keeps the project focused on classification.
 
 Around each annotated R-peak a window of 90 samples before and 166 samples after the peak is extracted, giving a fixed input length of 256 samples, about 0.71 seconds at 360\,Hz. The window is asymmetric: 90 samples (250\,ms) before the peak covers the P wave, and 166 samples (460\,ms) after it covers the T wave at normal heart rates. A length of 256 is a power of two, which simplifies the memory layout on the MAX78002.
 
+Figure~\ref{fig:beat-window} shows how one window is cut. The top panel shows the annotated R-peaks from the \texttt{.atr} file, each with its beat symbol and sample index. The bottom panel shows the window that is cut around one of them. The R-peak always sits at index 90, so every beat in the dataset is lined up in the same way.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{prep_beat_window.png}
+  \caption{Beat extraction on record 100. Top: raw MLII signal with the expert annotations and one 256-sample window shaded. Bottom: the extracted window, before filtering and normalisation.}
+  \label{fig:beat-window}
+\end{figure}
+
 Beats whose window extends past the start or end of the recording are dropped, which affects at most one or two beats per record.
+
+The window is described here because the steps that follow work on it. In the pipeline, though, the whole signal is filtered first and cut afterwards, as the next subsection shows.
 
 \subsection{Signal Preprocessing}
 

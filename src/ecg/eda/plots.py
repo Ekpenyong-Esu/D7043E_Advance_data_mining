@@ -56,6 +56,71 @@ def class_examples(recs: dict[int, Record], lead: str, before: int, after: int, 
     return fig
 
 
+def beat_window(r: Record, lead: str, before: int, after: int, beat_no: int = 5, context_s: float = 3.0):
+    """Top: a few seconds of signal with the .atr annotations and one window shaded. Bottom: that window alone."""
+    x = select_lead(r, lead)
+    beats = [(int(p), s) for p, s in zip(r.ann_samples, r.ann_symbols) if s in SYMBOL_TO_CLASS]
+    peak, sym = beats[beat_no]
+    a = max(0, peak - int(context_s / 2 * r.fs)); b = min(len(x), peak + int(context_s / 2 * r.fs))
+    fig, axes = plt.subplots(2, 1, figsize=(7.0, 4.4), gridspec_kw={"height_ratios": [1, 1.3]})
+
+    ax = axes[0]
+    ax.plot(np.arange(a, b) / r.fs, x[a:b], color=CLASS_COLORS["N"], linewidth=0.9)
+    ax.axvspan((peak - before) / r.fs, (peak + after - 1) / r.fs, color=CLASS_COLORS["S"], alpha=0.15, label=f"{before + after}-sample window")
+    for p, s in beats:
+        if a <= p < b:
+            ax.scatter(p / r.fs, x[p], s=14, color=CLASS_COLORS["S"], zorder=3)
+            ax.annotate(f"{s} @ {p}", (p / r.fs, x[p]), xytext=(0, 5), textcoords="offset points", ha="center", fontsize=7, color=INK_SOFT)
+    ax.set_xlabel("time (s)"); ax.set_ylabel(f"{lead} (mV)"); ax.legend(loc="lower right")
+    ax.set_title(f"Record {r.record_id}: annotated R-peaks (symbol @ sample index) from the .atr file", loc="left", fontsize=9)
+    ax.margins(y=0.25)
+
+    ax = axes[1]
+    w = x[peak - before:peak + after]; idx = np.arange(before + after)
+    ax.plot(idx, w, color=CLASS_COLORS["N"], linewidth=1.2)
+    ax.scatter(before, w[before], s=24, color=CLASS_COLORS["S"], zorder=3)
+    ax.annotate(f"R-peak, index {before}\n(sample {peak} in the record)", (before, w[before]),
+                xytext=(12, -4), textcoords="offset points", fontsize=8, va="top")
+    ax.axvline(before, color=INK_SOFT, linewidth=0.6, linestyle=":")
+    top = float(w.max()) + 0.15 * float(np.ptp(w))
+    for lo, hi, txt in [(0, before, f"{before} samples before ({before / r.fs * 1000:.0f} ms): P wave"),
+                        (before, before + after, f"{after} samples from the peak on ({after / r.fs * 1000:.0f} ms): QRS + T wave")]:
+        ax.annotate("", (lo, top), (hi - 1, top), arrowprops=dict(arrowstyle="<->", color=INK_SOFT, linewidth=0.8))
+        ax.annotate(txt, ((lo + hi) / 2, top), xytext=(0, 3), textcoords="offset points", ha="center", va="bottom", fontsize=7, color=INK_SOFT)
+    ax.set_xticks([0, before, before + after - 1]); ax.set_xlim(-3, before + after + 2)
+    ax.set_ylim(top=top + 0.2 * float(np.ptp(w)))
+    ax.set_xlabel("sample index inside the window"); ax.set_ylabel(f"{lead} (mV)")
+    ax.set_title(f"The extracted window: {before + after} samples = {(before + after) / r.fs:.2f} s at {r.fs} Hz, label '{sym}' -> class {SYMBOL_TO_CLASS[sym]}", loc="left", fontsize=9)
+    fig.tight_layout(h_pad=1.5)
+    return fig
+
+
+def class_in_context(recs: dict[int, Record], lead: str, picks: dict[str, int], before: int, after: int, seconds: float = 3.0):
+    """One row per class: a few seconds of signal around one beat of that class, between two N beats."""
+    fig, axes = plt.subplots(len(picks), 1, figsize=(7.0, 1.4 * len(picks)), sharex=True)
+    half = seconds / 2
+    for ax, (cls, rid) in zip(axes, picks.items()):
+        r = recs[rid]; x = select_lead(r, lead)
+        beats = [(int(p), s) for p, s in zip(r.ann_samples, r.ann_symbols) if s in SYMBOL_TO_CLASS]
+        # First beat of this class whose neighbours are both N, so the contrast is easy to see.
+        i = next(i for i in range(1, len(beats) - 1) if SYMBOL_TO_CLASS[beats[i][1]] == cls
+                 and SYMBOL_TO_CLASS[beats[i - 1][1]] == SYMBOL_TO_CLASS[beats[i + 1][1]] == "N"
+                 and half * r.fs <= beats[i][0] <= len(x) - half * r.fs)
+        peak = beats[i][0]; a, b = peak - int(half * r.fs), peak + int(half * r.fs)
+        ax.plot((np.arange(a, b) - peak) / r.fs, x[a:b], color=INK_SOFT, linewidth=0.8)
+        for p, s in beats:
+            if a <= p < b:
+                c = SYMBOL_TO_CLASS[s]
+                ax.annotate(c, ((p - peak) / r.fs, x[p]), xytext=(0, 4), textcoords="offset points",
+                            ha="center", fontsize=8, color=CLASS_COLORS[c], fontweight="bold" if p == peak else "normal")
+        ax.axvspan(-before / r.fs, (after - 1) / r.fs, color=CLASS_COLORS[cls], alpha=0.15)
+        ax.set_ylabel(f"{cls}\nrec {rid}", rotation=0, ha="right", va="center", color=CLASS_COLORS[cls])
+        ax.margins(y=0.3)
+    axes[-1].set_xlabel("seconds from the highlighted beat")
+    fig.tight_layout()
+    return fig
+
+
 def class_distribution(totals: pd.DataFrame):
     """Bar chart of beats per class, DS1 next to DS2. The y-axis is log scale because N dominates."""
     counts = totals["count"].loc[["DS1", "DS2"]]

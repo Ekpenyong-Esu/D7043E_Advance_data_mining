@@ -80,8 +80,17 @@ The full analysis is in \texttt{notebooks/EDA.ipynb}. The figures below summaris
 \begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{eda_class_examples.png}
-  \caption{Example heartbeat of each class, 256-sample window centred on the R-peak.}
+  \caption{Example heartbeat of each class, in the 256-sample window aligned on the R-peak (Section~\ref{sec:beat-extraction}).}
   \label{fig:class-examples}
+\end{figure}
+
+\textbf{Each class in its rhythm.} Figure~\ref{fig:class-context} shows one beat of each class in four seconds of signal, with the beats before and after it. This shows what a single window cannot. The S beat looks almost like an N beat, but it comes earlier than the rhythm predicts and is followed by a longer pause. The V beat is wide and tall, has no P wave in front of it, and is followed by a long pause. The F beat comes at the normal time, but its shape is partly normal and partly ventricular.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{eda_class_context.png}
+  \caption{One beat of each class (bold label, shaded 256-sample window) with its neighbouring beats. Raw MLII signal in mV. All examples are from DS1 records.}
+  \label{fig:class-context}
 \end{figure}
 
 \textbf{Class distribution.} Figure~\ref{fig:class-dist} shows how uneven the classes are. Normal beats make up close to 90\,\% of the data, V beats are the largest minority, S beats are about 2--3\,\% and F beats well under 1\,\%. This imbalance motivates several decisions in Section~\ref{sec:data-preparation}.

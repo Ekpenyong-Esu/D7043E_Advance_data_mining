@@ -40,7 +40,10 @@ def main() -> None:
     noise = {k: load_noise(cfg["paths"]["raw_nstdb"], k) for k in NSTDB_NOISE_RECORDS}
     figures = {
         "eda_raw_ecg": plots.raw_signal(recs[100]),
+        "prep_beat_window": plots.beat_window(recs[100], cfg["lead"], b, a),
         "eda_class_examples": plots.class_examples(recs, cfg["lead"], b, a),
+        # DS1 records only, so the test set stays unseen.
+        "eda_class_context": plots.class_in_context(recs, cfg["lead"], {"N": 101, "S": 209, "V": 119, "F": 208}, b, a, seconds=4.0),
         "eda_class_distribution": plots.class_distribution(totals),
         "eda_record_distribution": plots.record_distribution(cc),
         "eda_amplitude": plots.amplitude_distribution(amp),

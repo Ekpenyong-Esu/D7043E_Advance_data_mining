@@ -60,7 +60,7 @@ In addition, the INT8 model must lose no more than 0.03 macro-F1 relative to the
 
 \textbf{Class imbalance.} About nine in ten beats are normal and fusion beats are below 1\,\% of the data. A model can ignore the rare classes and still score well on accuracy.
 
-\textbf{Few subjects.} The database contains 47 people. Training on 22 records and testing on 22 others is a demanding generalisation task, and the rare classes are concentrated in a few records.
+\textbf{Few subjects.} The database has 48 records from 47 people. After removing the four paced records, I train on 22 records (DS1) and test on 22 others (DS2). This is a demanding generalisation task, and the rare classes are concentrated in a few records.
 
 \textbf{Noise.} Real wearable ECG contains baseline drift, muscle activity and electrode movement. The training data is comparatively clean hospital ECG.
 
