@@ -8,5 +8,5 @@ Start with `preprocess.yaml`. It is the only config in Submission 1.
 
 How it connects:
 
-- `src/prepare_data.py` and `src/make_eda_figures.py` both load it with `src/ecg/config.py`.
+- `src/prepare_data.py` and `notebooks/EDA.ipynb` both load it with `src/ecg/config.py`.
 - The DS1 and DS2 record lists are not here. They are fixed, so they are in `src/ecg/constants.py`.

@@ -72,8 +72,7 @@ Each folder has a short README that says which file to read first, what every fi
 
 - `configs/preprocess.yaml` holds the settings. Both scripts in `src/` start by loading it.
 - `src/prepare_data.py` reads `data/raw/` and writes `data/processed/` and the tables in `results/`.
-- `src/make_eda_figures.py` reads `data/raw/` and writes `results/eda/` and `report/figures/`.
-- `notebooks/EDA.ipynb` shows the same analysis. It calls the same functions as `src/make_eda_figures.py`.
+- `notebooks/EDA.ipynb` reads `data/raw/` and writes the EDA figures and tables to `results/eda/`. It is the only code that draws figures.
 - `report/` includes figures from `report/figures/` and quotes the numbers in `results/`.
 
 ## 4. Installation
@@ -130,8 +129,6 @@ make prepare
 python src/prepare_data.py --config configs/preprocess.yaml
 
 # 2. EDA figures and tables for report section 2
-make eda
-# or open the notebook
 jupyter notebook notebooks/EDA.ipynb
 
 # 3. Run the tests

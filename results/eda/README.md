@@ -1,6 +1,6 @@
 # results/eda/
 
-Tables for report section 2, written by `make eda`.
+Tables for report section 2, written by `notebooks/EDA.ipynb`.
 
 Start with `class_totals.csv`. Read in this order:
 
@@ -13,7 +13,10 @@ Start with `class_totals.csv`. Read in this order:
 
 How they connect:
 
-- `src/make_eda_figures.py` calls the functions in `src/ecg/eda/stats.py` on the raw records and saves each returned table here.
+- `notebooks/EDA.ipynb` calls the functions in `src/ecg/eda/stats.py` on the raw records and saves each returned table here.
 - `class_totals.csv` is built from `class_counts_per_record.csv`, which is built with the same mapping as `../label_mapping.json`.
-- The figures in `report/figures/eda_*.png` are drawn from these same tables by `src/ecg/eda/plots.py`.
+- The figures in `figures/` are drawn from these same tables by `src/ecg/eda/plots.py`.
 - The class table in report section 2.2 quotes `class_totals.csv`.
+- `notebooks/EDA.ipynb` also writes `figures/*.png` and LaTeX tables `tables/*.tex`
+  (made by `src/ecg/eda/latex.py`). Copy them by hand to `report/figures/` and
+  `report/tables/`.

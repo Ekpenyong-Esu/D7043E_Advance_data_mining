@@ -7,4 +7,4 @@ Start with `raw/README.md`, then `processed/README.md`.
 1. `raw/`: PhysioNet downloads (`mitdb/`, `nstdb/`).
 2. `processed/`: `train.npz`, `val.npz`, `test.npz`.
 
-How they connect: `make data` downloads both databases with wfdb and fills `raw/`. `make prepare` runs `src/prepare_data.py`, which reads `raw/mitdb/` and writes `processed/`. `make eda` reads `raw/` for the figures and tables, and one beat from `processed/` for the augmentation figure.
+How they connect: `make data` downloads both databases with wfdb and fills `raw/`. `make prepare` runs `src/prepare_data.py`, which reads `raw/mitdb/` and writes `processed/`. `notebooks/EDA.ipynb` reads `raw/` for the figures and tables, and one beat from `processed/` for the augmentation figure.

@@ -15,12 +15,12 @@ Paced beats (from a pacemaker) and unknown beats are left out.
 
 ---
 
-The Makefile has 5 commands. Run them from the project folder, in this order:
+The Makefile has 4 commands. Run them from the project folder, in this order, and run the EDA notebook after `make prepare`:
 
 ```bash
 make data
 make prepare
-make eda
+# run notebooks/EDA.ipynb
 make test
 make report
 ```
@@ -61,14 +61,9 @@ prepare:
 
 ---
 
-## 3. `make eda`
+## 3. Run `notebooks/EDA.ipynb`
 
-```makefile
-eda:
-	.venv/bin/python src/make_eda_figures.py --config configs/preprocess.yaml
-```
-
-**What it does:** makes the figures and tables that describe the data. They go to `report/figures/` and `results/eda/`.
+**What it does:** makes the figures and tables that describe the data. They go to `results/eda/`. Copy the ones you need into `report/figures/` and `report/tables/` by hand.
 
 **Why third:** one of the figures uses a prepared heartbeat, so step 2 must run first.
 

@@ -5,13 +5,13 @@ Entry-point scripts and the `ecg/` package.
 Start with `ecg/README.md`, then read the scripts in the order you run them:
 
 1. `prepare_data.py`: raw records to processed splits (`make prepare`).
-2. `make_eda_figures.py`: figures and tables for report section 2 (`make eda`).
+
+The EDA figures and tables are made by `notebooks/EDA.ipynb`, which calls `ecg/eda/`.
 
 How they connect:
 
 - Each script loads the config with `ecg/config.py` and then calls the package. `prepare_data.py` also sets the seed with `ecg/seed.py`.
 - `prepare_data.py` calls `ecg/data/pipeline.py`. It writes `data/processed/` and the tables in `results/`.
-- `make_eda_figures.py` calls `ecg/eda/`. It writes `results/eda/` and `report/figures/`. One figure needs a processed beat, so run `make prepare` first.
 - The report sections quote the tables both scripts write to `results/`.
 
 Design rules:

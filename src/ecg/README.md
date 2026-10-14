@@ -22,4 +22,4 @@ How they connect:
 - `constants.py` is imported by `data/labels.py`, `data/splits.py`, `data/storage.py`, `data/pipeline.py` and all of `eda/`. Nothing else defines record lists or class names.
 - `config.py` and `seed.py` are called only by the scripts in `src/`, before any package function runs.
 - `data/` reads `data/raw/` and writes `data/processed/`. `eda/` reads the same raw records through `data/records.py`, `data/channels.py` and `data/labels.py`.
-- `noise/nstdb.py` reads `data/raw/nstdb/`. `src/make_eda_figures.py` and the notebook use it.
+- `noise/nstdb.py` reads `data/raw/nstdb/`. `notebooks/EDA.ipynb` uses it.

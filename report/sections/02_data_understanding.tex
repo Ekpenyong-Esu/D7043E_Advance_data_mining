@@ -21,7 +21,7 @@ The main dataset is the MIT-BIH Arrhythmia Database from PhysioNet~\cite{moody20
     Duration           & About 30 minutes per record, about 24 hours in total \\
     Annotations        & Beat-by-beat labels on the R-peak, made by two cardiologists with disagreements resolved \\
     Beat annotations   & About 110\,000 \\
-    ECG leads          & First channel is modified limb lead II (MLII) in 46 records; second channel is usually V1, sometimes V2, V4 or V5. Records 102 and 104 have no MLII. \\
+    ECG leads          & Modified limb lead II (MLII) is present in 46 records and is the first channel in 45 of them; the other channel is usually V1, sometimes V2, V4 or V5. Records 102 and 104 have no MLII. \\
     \bottomrule
   \end{tabularx}
 
@@ -102,7 +102,7 @@ The full analysis is in \texttt{notebooks/EDA.ipynb}. The figures below summaris
   \label{fig:class-dist}
 \end{figure}
 
-\textbf{Beats per record.} Figure~\ref{fig:record-dist} shows the class composition of each record. The rare classes are not spread evenly: most S beats come from a few records such as 118, 207, 209 and 232, and most F beats from records 208 and 213. Performance on these classes therefore depends heavily on which records are in each split.
+\textbf{Beats per record.} Figure~\ref{fig:record-dist} shows the class composition of each record, and Table~\ref{tab:class-per-record} gives the exact counts. The rare classes are not spread evenly. Record 232 alone holds 1\,382 of the 2\,781 S beats, about half of them, and records 209 and 222 add another 592. For F beats it is even more extreme: records 208 and 213 hold 735 of the 803 F beats. Record 208 is in DS1 and record 213 is in DS2, so the model learns F mostly from one person and is tested mostly on another. Performance on these classes therefore depends heavily on a few individual patients.
 
 \begin{figure}[H]
   \centering
@@ -110,6 +110,8 @@ The full analysis is in \texttt{notebooks/EDA.ipynb}. The figures below summaris
   \caption{Class composition of each record.}
   \label{fig:record-dist}
 \end{figure}
+
+\input{tables/eda_class_counts_per_record}
 
 \textbf{Signal amplitude.} Figure~\ref{fig:amplitude} shows the distribution of R-peak amplitude per record. Amplitudes vary by a factor of several between records because electrode placement and skin contact differ between subjects. Each beat is therefore normalised individually rather than with one global scale.
 
@@ -135,13 +137,17 @@ The full analysis is in \texttt{notebooks/EDA.ipynb}. The figures below summaris
 
 \textbf{Extreme amplitudes.} A few records contain short bursts where the signal saturates at the limits of the 10\,mV range, usually during electrode movement. These segments are rare. Per-beat normalisation and clipping limit their effect on the input.
 
-\textbf{Corrupted segments.} The annotators marked noisy stretches with the \texttt{\textasciitilde} symbol. Records 203, 207 and 208 contain the most of these. The beats inside these segments are kept, since a wearable will encounter the same kind of signal, but they are a likely source of label noise.
+\textbf{Corrupted segments.} The annotators marked noisy stretches with the \texttt{\textasciitilde} symbol. Table~\ref{tab:noise-marks} lists the records with the most of these marks. Record 105 has the most by far, followed by 203, 200 and 108. The noisy records are spread over both splits, so neither the training set nor the test set is much cleaner than the other. The beats inside these segments are kept, since a wearable will encounter the same kind of signal, but they are a likely source of label noise.
+
+\input{tables/eda_noise_marks}
 
 \textbf{Class imbalance.} Described above; it is the main data-quality issue.
 
 \textbf{Differences between recordings.} Heart rate, beat shape, amplitude and noise level all vary from record to record. Some records show only normal rhythm, others show bundle branch block on every beat, and a few contain long runs of ventricular beats. Because of this variation, results on a small number of records can be misleading.
 
-\textbf{Differences between channels.} MLII is the first channel in 46 of the 48 records, but in record 114 the two channels are stored in the opposite order. Selecting the lead by name rather than by column index avoids reading the wrong signal. Records 102 and 104 have no MLII; both are paced records and are already excluded.
+\textbf{Differences between channels.} Table~\ref{tab:leads} shows which lead is stored in each channel. MLII is the first channel in 43 of the 44 records used, but in record 114 the two channels are stored in the opposite order. Selecting the lead by name rather than by column index avoids reading the wrong signal. The second channel also changes between records, so only MLII is the same in every record. Records 102 and 104 have no MLII; both are paced records and are already excluded.
+
+\input{tables/eda_leads}
 
 \textbf{Possible noisy regions.} Baseline wander is present to some degree in almost every record. It is removed in preprocessing rather than detected and skipped.
 

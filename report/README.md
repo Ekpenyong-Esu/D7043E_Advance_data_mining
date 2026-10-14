@@ -26,7 +26,7 @@ report/
 How they connect:
 
 - `report.tex` loads `thesisMDH.cls`, then pulls in each file in `sections/` with `\input`, then the bibliography from `references.bib`.
-- The sections include figures from `figures/`. Those are written by `make eda`.
+- The sections include figures from `figures/`. Those are drawn by `notebooks/EDA.ipynb` and copied in by hand.
 - The numbers in sections 02 and 03 come from `results/split_stats.csv` and `results/eda/class_totals.csv`.
 - `thesisMDH.cls` draws the title page with the logos in `images/`.
 

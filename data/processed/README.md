@@ -11,6 +11,6 @@ Start with `train.npz`. All three files have the same keys:
 | `record_ids` | (n,) | source record of each beat |
 | `rr` | (n, 3) float32 | pre-RR, post-RR (seconds, capped at 3 s), pre-RR divided by local mean RR |
 
-How they connect: `make prepare` writes all three. `make eda` reads one beat from `train.npz` for the augmentation figure. The models in Submission 2 will train and test on these files.
+How they connect: `make prepare` writes all three. `notebooks/EDA.ipynb` reads one beat from `train.npz` for the augmentation figure. The models in Submission 2 will train and test on these files.
 
 `test.npz` is DS2. Do not use it for model selection.

@@ -1,4 +1,4 @@
-.PHONY: data prepare eda test report
+.PHONY: data prepare test report
 
 # REQUESTS_CA_BUNDLE points at the system store so downloads work behind a corporate proxy
 data: export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
@@ -8,9 +8,6 @@ data:
 
 prepare:
 	.venv/bin/python src/prepare_data.py --config configs/preprocess.yaml
-
-eda:
-	.venv/bin/python src/make_eda_figures.py --config configs/preprocess.yaml
 
 test:
 	.venv/bin/python -m pytest -q

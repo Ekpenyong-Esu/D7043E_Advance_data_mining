@@ -12,5 +12,5 @@ Start with `split_stats.csv`. Read in this order:
 How they connect:
 
 - `make prepare` (`src/prepare_data.py`) writes the first three files at the end of `src/ecg/data/pipeline.py`.
-- `make eda` (`src/make_eda_figures.py`) writes `eda/`.
+- `notebooks/EDA.ipynb` writes `eda/`.
 - The report sections in `report/sections/` quote `split_stats.csv` and `eda/class_totals.csv`.

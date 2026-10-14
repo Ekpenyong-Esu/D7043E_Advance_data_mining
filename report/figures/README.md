@@ -12,4 +12,4 @@ Start with `eda_raw_ecg.png`. The EDA figures follow the order of report section
 6. `eda_noisy.png`: noisy records and the NSTDB noise types.
 7. `aug_amplitude_scale.png`: one beat at three amplitude scales, for section 3.7.
 
-How they connect: `make eda` runs `src/make_eda_figures.py`, which draws these with `src/ecg/eda/plots.py` from the same tables saved in `results/eda/`. The `.tex` files in `../sections/` include them.
+How they connect: `notebooks/EDA.ipynb` draws these with `src/ecg/eda/plots.py` into `results/eda/figures/`, and they are copied here by hand. The `.tex` files in `../sections/` include them.
