@@ -9,6 +9,7 @@ Start with `report.tex`. Then read in this order:
 3. `references.bib`: the bibliography.
 4. `thesisMDH.cls`: document class from the LTU/MDH template.
 5. `figures/` and `images/`: pictures the sections and the template use.
+6. `tables/`: LaTeX tables from `notebooks/EDA.ipynb`, copied in by hand.
 
 ```
 report/
@@ -20,6 +21,7 @@ report/
 │   ├── 02_data_understanding.tex
 │   └── 03_data_preparation.tex
 ├── figures/
+├── tables/
 └── images/
 ```
 
