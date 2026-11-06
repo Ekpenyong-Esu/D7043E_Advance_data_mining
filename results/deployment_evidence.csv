@@ -1,0 +1,8 @@
+Requirement,Result,Evidence
+Model accepted by MAX78002 toolchain,PASS,"ai8x layer checks, quantize.py and ai8xize.py read the model without error"
+Quantization completed,PASS,quantize.py log and the INT8 checkpoint
+Synthesis completed,PASS,ai8xize.py exit code and log.txt
+C/device files generated,PASS,"cnn.c, cnn.h, weights.h, main.c, sampledata.h, sampleoutput.h, softmax.c, Makefile"
+Weight memory requirement,"25\,168 bytes of 2\,396\,160",RESOURCE USAGE in log.txt
+Data memory requirement,"8\,192 bytes (largest activation) of 1\,310\,720","largest layer input or output; the MAX78002 has 1\,280 KiB of data memory"
+Known-answer test: Python INT8 output equals synthesiser output,PASS,sampleoutput.h versus the Python INT8 simulation of the same beat

@@ -1,0 +1,7 @@
+Criterion,Target,Result on DS2,Status
+Predictive performance,macro-F1 $\geq$ 0.70 on DS2,0.493,Not achieved
+Minority class performance,"recall S and F $\geq$ 0.50, V $\geq$ 0.85","S 0.11, F 0.00, V 0.94",Partially achieved
+Noise robustness,macro-F1 drop clean to 6 dB $\leq$ 0.15,0.493 to 0.481 (drop 0.012),Achieved
+Model complexity,"$\leq$ 100\,000 parameters, $\leq$ 200 kB INT8","25\,348 parameters, 24.6 kB",Achieved
+MAX78002 compatibility,PASS on all four toolchain checks,4 of 4 PASS,Achieved
+Quantisation loss,INT8 macro-F1 within 0.03 of FP32,loss 0.012,Achieved

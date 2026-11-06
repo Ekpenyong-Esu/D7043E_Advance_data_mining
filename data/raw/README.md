@@ -1,6 +1,6 @@
 # data/raw/
 
-PhysioNet databases as downloaded by `make data`.
+PhysioNet databases, downloaded by section 0.1 of `notebooks/EDA.ipynb`.
 
 Start with `mitdb/`.
 
@@ -11,4 +11,4 @@ Start with `mitdb/`.
 
 How they connect: `src/ecg/data/records.py` reads one `mitdb` record and its annotations. `src/ecg/noise/nstdb.py` reads the `nstdb` noise records. The pipeline and the EDA use `records.py`. The EDA uses `nstdb.py` for the noisy-ECG figure.
 
-Behind a proxy, set `REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt` before downloading.
+Behind a proxy the notebook points `REQUESTS_CA_BUNDLE` at `/etc/ssl/certs/ca-certificates.crt` before downloading.

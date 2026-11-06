@@ -1,0 +1,108 @@
+\section{Evaluation}
+\label{sec:evaluation}
+
+DS2 was read for the first time for this section, after the FP32 model, the INT8 model and the baselines were frozen on the validation records. Every model was scored once. Each model sees DS2 built with its own window (256 samples for the baselines, 512 for the CNN); the records and the annotated beats are the same, only the number of beats dropped at the record edges differs by a few. Section 5 of \texttt{notebooks/MODELING.ipynb} writes every number below to \texttt{results/}. The INT8 scores come from the ai8x integer simulation of the quantised checkpoint, which Section~\ref{sec:evidence} shows to match the synthesiser bit for bit.
+
+\subsection{Clean Test Results}
+\label{sec:clean-results}
+
+\input{tables/clean_results}
+
+The CNN beats both baselines on macro-F1, the metric the project is judged on: 0.51 in FP32 and 0.49 in INT8 against 0.48 for the logistic regression and 0.46 for the random forest. The forest has the highest accuracy (0.935) because it predicts N almost always on unseen records; the CNN's 0.92 is lower but comes with a far better V class. All numbers are well below the validation scores of Section~\ref{sec:model-selection} (0.67 for the CNN), which is the inter-patient gap discussed below.
+
+\subsection{Per-Class Performance}
+\label{sec:per-class}
+
+\input{tables/per_class}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.48\linewidth]{confusion_matrix_cnn_int8.png}\hfill
+  \includegraphics[width=0.48\linewidth]{confusion_matrix_cnn_fp32.png}
+  \caption{Confusion matrices on DS2 of the deployed INT8 model (left) and the FP32 model (right). Rows are true classes, columns predicted classes; the shading is the share of the row.}
+  \label{fig:confusion}
+\end{figure}
+
+\textbf{N and V are solved well.} The INT8 model finds 95.5\,\% of normal beats and 94.3\,\% of ventricular beats, with a V precision of 0.86 (Figure~\ref{fig:confusion}). V beats have a wide, differently shaped QRS complex, which a convolution over the waveform detects on patients it has never seen.
+
+\textbf{S is the difficult class.} S recall is 0.11: 1\,550 of the 1\,837 S beats in DS2 are called N, and 1\,488 N beats are called S, so precision is 0.12 as well. On the validation records the same model found 40\,\% of the S beats. The explanation is in Table~\ref{tab:per-record}: record 232 alone holds 1\,382 of the DS2 S beats, three quarters of the class. Its atrial premature beats sit in a rhythm with long pauses and slow underlying rate, so they do not look ``early'' in the way the training S beats do, and the network sees ordinary N beats. The only S cue available to a waveform-only model is timing relative to the neighbouring beats, and for this patient that cue points the wrong way. A single DS1 record (209) contributed most of the training S beats, so the model also learned one patient's version of S. The random forest, which gets the timing as explicit RR features, does no better (S recall 0.003); the problem is the patients, not only the features.
+
+\textbf{F is not learned.} With 382 training F beats, 373 of them from record 208, the model never generalises the class: F recall is 0.003 in INT8 and 0.013 in FP32, and most F beats are called N. The 32 validation F beats were too few to guide selection. A fusion beat is by definition half normal and half ventricular, and without more patients the network has no way to know where to draw that line.
+
+\subsection{Quantization Analysis}
+\label{sec:quantization-analysis}
+
+\input{tables/quantization_ds2}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{fp32_vs_int8.png}
+  \caption{Macro-F1 and per-class recall on DS2 of the FP32 and the INT8 model.}
+  \label{fig:fp32-int8}
+\end{figure}
+
+The deployed INT8 model loses 0.012 macro-F1 against FP32 on DS2 (0.505 to 0.493), within the 0.03 allowed in Section~1.4. Accuracy drops by 0.005. Per class (Figure~\ref{fig:fp32-int8}), V recall even rises slightly (0.928 to 0.943) while S recall falls from 0.127 to 0.114 and F from 0.013 to 0.003; the rare classes, which live on small differences in the waveform, feel the 8-bit rounding first. This small loss is the result of QAT with activation thresholds; the post-training route of Section~\ref{sec:quantization} would have lost about 0.27 on validation.
+
+\subsection{Noise Robustness}
+\label{sec:noise}
+
+Noise from the Noise Stress Test Database was added to the raw DS2 signals before preprocessing, at 12, 6 and 0\,dB for each of the three noise types, and the frozen models were scored again (\texttt{results/noise\_results.csv}). Table~\ref{tab:noise} averages the INT8 model over the three noise types, Figure~\ref{fig:noise} and Table~\ref{tab:noise-by-type} show each type.
+
+\input{tables/noise_results}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{noise_results.png}
+  \caption{INT8 model on DS2 under noise. Left: macro-F1 against SNR for each noise type. Right: per-class F1 averaged over the three noise types.}
+  \label{fig:noise}
+\end{figure}
+
+\input{tables/noise_by_type}
+
+\textbf{Which classes are affected.} The V class carries almost all of the loss: its F1 falls from 0.90 clean to 0.59 with electrode motion at 0\,dB, while N stays above 0.91 and S and F were already near their floor. Electrode-motion artefact produces sharp transients that look like wide QRS complexes, so N beats are called V.
+
+\textbf{Degradation is gradual and depends on the noise type.} Baseline wander has no effect at any level (macro-F1 0.495 to 0.499 across 12, 6 and 0\,dB): the median-filter baseline removal of Section~3.4 takes it out before the network sees it. Muscle artefact costs little until 0\,dB (0.502, 0.495, 0.474). Electrode motion is the hard case and degrades steadily (0.481, 0.452, 0.405). The average drop from clean to 6\,dB is 0.012, far inside the 0.15 allowed.
+
+\textbf{Does preprocessing help?} The baseline removal clearly does, as the \texttt{bw} rows show. The 40\,Hz low-pass filter does not: with it switched off (rows \texttt{cnn\_int8\_no\_lowpass}) the scores are the same within 0.01, and on clean data slightly higher. The network has learned to ignore high-frequency noise itself, helped by the Gaussian-noise augmentation, so the low-pass could be dropped from the device pipeline.
+
+\textbf{Robustness versus model size.} The small (7\,428 parameters) and large (39\,300) wide-window networks from the sweep, both FP32, score lower than the final model everywhere and degrade at least as fast; the large network is the least robust (0.339 at 0\,dB electrode motion against 0.405 for the final model). More weights did not buy robustness. The random forest barely moves under noise because the RR features, taken from the annotations, are untouched by it; its waveform half is what degrades (V F1 0.87 to 0.64 at 0\,dB electrode motion).
+
+\textbf{Could robustness be improved?} The biggest lever is training on noisy signals: Section~3.7 planned real \texttt{nstdb} noise as an optional augmentation, which was not run in the sweep for lack of time; it would target exactly the electrode-motion case. A second lever is a simple signal-quality check on the device that rejects windows whose amplitude distribution is abnormal, rather than classifying them.
+
+\subsection{Error Analysis}
+\label{sec:errors}
+
+\input{tables/error_counts}
+
+\input{tables/per_record_ds2}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{error_examples.png}
+  \caption{Misclassified beats of the INT8 model on clean DS2, one row per error type, four random examples each. The window is the model input (normalised amplitude, R-peak at 0\,ms).}
+  \label{fig:errors}
+\end{figure}
+
+\textbf{N classified as S} (1\,488 beats, Figure~\ref{fig:errors}, first row). These are normal beats that arrive with a short or irregular gap after the previous beat, so the window shows a neighbouring R-peak early on. The model has learned ``a close previous beat means S'' and applies it to irregular normal rhythms: record 219, whose rhythm is atrial fibrillation, alone contributes 767 of these errors, and records 222 (374 beats called S, of which 209 are true S) and 214 (180) most of the rest (Table~\ref{tab:per-record}).
+
+\textbf{S classified as N} (1\,550 beats, second row). Almost all from record 232, where only 4 of 1\,382 S beats were recognised. The beats look like normal beats with a normal QRS, which is what an atrial premature beat is, and in this patient's slow rhythm the preceding gap is not short. Nothing inside a 1.4\,s window separates them from N.
+
+\textbf{V misclassified} (163 as N, 19 as S). The V beats called N have a narrower QRS than the training V beats, so the width difference the model relies on is small. The opposite error is more common: in record 214, whose normal beats show left bundle branch block and are therefore wide, 142 N beats are called V. The few V beats called S are early beats with a moderate QRS width.
+
+\textbf{F beats} (332 as N, 54 as V). Fusion beats are called N when the ventricular part is small and V when it is large; the model has no middle class in practice.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{error_examples_noise.png}
+  \caption{Beats that were classified correctly when clean but wrongly with muscle artefact at 0\,dB, shown as the model saw them.}
+  \label{fig:errors-noise}
+\end{figure}
+
+\textbf{Errors under strong noise} (Figure~\ref{fig:errors-noise}). With muscle artefact at 0\,dB the per-beat z-score spreads the noise over the whole window, so the QRS complex loses its prominence and sharp noise peaks appear elsewhere. Normal beats then turn into V (the noise peaks read as a wide complex) and V beats into N (the real complex is buried). The P wave, which was already the weakest feature, is the first to disappear, which removes the little S information there was.
+
+\subsection{Success Criteria Review}
+\label{sec:criteria-review}
+
+\input{tables/success_criteria}
+
+Four of the six criteria of Section~1.4 are achieved: the model is small, it is robust to noise, it passed the whole MAX78002 toolchain with a bit-exact known-answer test, and the quantisation loss is within the limit. The predictive criteria are not achieved: macro-F1 on DS2 is 0.49 against the target of 0.70, V recall meets its target (0.94 against 0.85) but S and F recall do not (0.11 and 0.003 against 0.50). The minority-class criterion is therefore partially achieved. Section~\ref{sec:discussion} discusses why the target was missed and what would change it; in short, the model does what a waveform-only single-lead classifier can do for N and V, and the S and F classes need information or data that this setting does not provide.

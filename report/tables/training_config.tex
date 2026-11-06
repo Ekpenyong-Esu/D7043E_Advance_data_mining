@@ -1,0 +1,23 @@
+\begin{table}[H]
+  \centering
+  \caption{Training configuration of the final model.}
+  \label{tab:training-config}
+  \rowcolors{2}{white}{rowtint}
+  \begin{tabularx}{\linewidth}{lY}
+    \rowcolor{primaryblue}
+    \hd{Setting} & \hd{Value} \\
+    Input & 1 $\times$ 512 samples, scaled to $[-1, 1)$ \\
+    Optimizer & Adam, weight decay 0 \\
+    Learning rate & 0.001, cosine decay over 60 epochs \\
+    Batch size & 128 \\
+    Epochs & at most 60; stopped after 28, best epoch 18 \\
+    Loss & cross-entropy \\
+    Class weighting & none \\
+    Oversampling & sampler weight (1 / class frequency) to the power 0.5 \\
+    Early stopping & patience 10 epochs on validation macro-F1 \\
+    Augmentation & amplitude scaling [0.8, 1.2], time shift $\pm$5 samples, baseline wander up to 0.3, Gaussian noise $\sigma$ = 0.02 \\
+    Dropout & 0.000 \\
+    Random seed & 42 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

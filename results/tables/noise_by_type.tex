@@ -1,0 +1,21 @@
+\begin{table}[H]
+  \centering
+  \caption{Macro-F1 on DS2 for every noise type and SNR. no\_lowpass: the INT8 model with the 40 Hz filter switched off.}
+  \label{tab:noise-by-type}
+  \rowcolors{2}{white}{rowtint}
+  \begin{tabularx}{\linewidth}{lRRRRRRR}
+    \rowcolor{primaryblue}
+    \hd{Noise} & \hd{SNR (dB)} & \hd{cnn\_int8} & \hd{cnn\_fp32} & \hd{cnn\_int8\_no\_lowpass} & \hd{baseline\_rf} & \hd{cnn\_w512\_large} & \hd{cnn\_w512\_small} \\
+    clean & clean & 0.493 & 0.505 & 0.497 & 0.461 & 0.445 & 0.452 \\
+    baseline wander & 12 & 0.495 & 0.505 & 0.497 & 0.461 & 0.445 & 0.454 \\
+    baseline wander & 6 & 0.496 & 0.504 & 0.499 & 0.461 & 0.443 & 0.455 \\
+    baseline wander & 0 & 0.499 & 0.504 & 0.500 & 0.460 & 0.444 & 0.459 \\
+    electrode motion & 12 & 0.481 & 0.484 & 0.484 & 0.452 & 0.420 & 0.437 \\
+    electrode motion & 6 & 0.452 & 0.454 & 0.454 & 0.436 & 0.386 & 0.404 \\
+    electrode motion & 0 & 0.405 & 0.402 & 0.408 & 0.401 & 0.339 & 0.342 \\
+    muscle artefact & 12 & 0.502 & 0.507 & 0.499 & 0.459 & 0.443 & 0.451 \\
+    muscle artefact & 6 & 0.495 & 0.499 & 0.489 & 0.457 & 0.437 & 0.448 \\
+    muscle artefact & 0 & 0.474 & 0.476 & 0.461 & 0.452 & 0.413 & 0.429 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

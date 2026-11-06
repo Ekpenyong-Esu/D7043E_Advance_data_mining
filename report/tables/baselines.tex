@@ -1,0 +1,13 @@
+\begin{table}[H]
+  \centering
+  \caption{Baselines on the validation records. Both see the flattened beat plus the three RR features. Params: coefficients for the logistic regression, tree nodes for the forest.}
+  \label{tab:baselines}
+  \rowcolors{2}{white}{rowtint}
+  \begin{tabularx}{\linewidth}{lRRRRRRR}
+    \rowcolor{primaryblue}
+    \hd{Model} & \hd{Params} & \hd{Accuracy} & \hd{Macro-F1} & \hd{S prec.} & \hd{S recall} & \hd{V recall} & \hd{F recall} \\
+    Logistic regression & 1\,040 & 0.894 & 0.462 & 0.254 & 0.319 & 0.535 & 0.125 \\
+    Random forest & 150\,574 & 0.933 & 0.430 & 0.933 & 0.043 & 0.529 & 0.000 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

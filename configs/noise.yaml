@@ -1,0 +1,3 @@
+# Noise-robustness experiment, report section 5.4. Noise is added to the raw DS2 signals, never to training data.
+noise_types: [bw, em, ma]        # baseline wander, electrode motion, muscle artefact (NSTDB records)
+snr_db: [12, 6, 0]               # clean is always included

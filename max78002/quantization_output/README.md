@@ -1,0 +1,8 @@
+# max78002/quantization_output/
+
+Start with `<final run>_ptq_quantize.log`.
+
+1. `<final run>_ptq_quantize.log` and `<final run>_ptq-q.pth.tar`: `quantize.py` on the FP32 checkpoint (post-training quantisation). The log lists the scale factor chosen for every layer.
+2. `<final run>_qat_quantize.log` and `<final run>_qat-q.pth.tar`: `quantize.py` on the checkpoint after quantisation-aware fine-tuning.
+
+How they connect: section 4 of `notebooks/MODELING.ipynb` runs `src/ecg/deployment/toolchain.run_quantize` for both, scores both on the validation records with `src/ecg/evaluation/predict.py` (INT8 simulation), and passes the better one to `ai8xize.py` in `../synthesis_output/`. `results/quantization_val.csv` holds the scores.

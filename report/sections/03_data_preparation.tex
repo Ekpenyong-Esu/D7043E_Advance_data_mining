@@ -1,7 +1,7 @@
 \section{Data Preparation}
 \label{sec:data-preparation}
 
-All steps in this section are implemented in \texttt{src/prepare\_data.py} and the \texttt{ecg.data} package. Every tunable number comes from \texttt{configs/preprocess.yaml}, so the whole pipeline can be rerun from the raw PhysioNet files with one command.
+All steps in this section are implemented in the \texttt{ecg.data} package and run from section 0.2 of \texttt{notebooks/EDA.ipynb}. Every tunable number comes from \texttt{configs/preprocess.yaml}, so the whole pipeline can be rerun from the raw PhysioNet files with one command.
 
 \subsection{Record Selection}
 \label{sec:record-selection}
@@ -16,15 +16,17 @@ The split follows the inter-patient partition of de~Chazal et al.~\cite{dechazal
   \begin{tabularx}{\linewidth}{l c Y}
         \rowcolor{primaryblue}
     \hd{Split} & \hd{Records} & \hd{Record numbers} \\
-    Training (DS1 minus validation) & 17 & 101, 106, 108, 109, 112, 114, 115, 116, 119, 122, 207, 208, 209, 215, 220, 223, 230 \\
-    Validation (subset of DS1)      & 5  & 118, 124, 201, 203, 205 \\
+    Training (DS1 minus validation) & 17 & 101, 106, 108, 109, 112, 114, 115, 116, 118, 119, 122, 203, 207, 208, 209, 215, 230 \\
+    Validation (subset of DS1)      & 5  & 124, 201, 205, 220, 223 \\
     Test (DS2)                      & 22 & 100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210, 212, 213, 214, 219, 221, 222, 228, 231, 232, 233, 234 \\
     \bottomrule
   \end{tabularx}
 
 \end{table}
 
-The validation records were chosen after inspecting the per-record class counts (Figure~\ref{fig:record-dist}). A first choice that placed record 208 in validation left only 20 fusion beats for training, because record 208 alone holds 372 of the 415 F beats in DS1. The final choice keeps records 208 and 209, which hold most of the F and S beats respectively, in training, and uses five records that together contain all four classes: 118 and 201 contribute S beats, 203 and 201 contribute V beats, and 124 and 205 contribute a few F beats. Validation therefore holds about 23\,\% of the DS1 beats but only 19 fusion beats, which is a limitation of the dataset rather than of the split; no assignment of DS1 records gives both training and validation a large F class. Validation is used for early stopping, hyperparameter choice and model selection. DS2 is not used until the final model is fixed.
+The validation records were chosen after inspecting the per-record class counts (Figure~\ref{fig:record-dist}). A first choice that placed record 208 in validation left only 20 fusion beats for training, because record 208 alone holds 372 of the 415 F beats in DS1. The choice keeps records 208 and 209, which hold most of the F and S beats respectively, in training. Validation is used for early stopping, hyperparameter choice and model selection. DS2 is not used until the final model is fixed.
+
+\textbf{Revision in Submission 2.} Submission 1 used records 118, 124, 201, 203 and 205 for validation. The first training runs of the modeling stage showed two problems with that choice, and CRISP-DM asks for exactly this kind of return to an earlier stage. First, records 118 and 124 are the only two DS1 records whose beats show right bundle branch block (they contain 2\,166 and 1\,531 \texttt{R} beats, which map to class N). With both in validation, the training set had almost no beats of that shape, and DS2 contains two more such records (212 and 231). Second, record 203 is the noisiest record in the database (Table~\ref{tab:noise-marks}) and made up a quarter of the validation beats. Its noisy N beats were predicted as V or F more and more as training went on, so the validation score fell from the first epoch while the other four records improved; early stopping then always picked an almost untrained network. The final split therefore moves 118 and 203 into training, where the first adds bundle branch block beats and the second adds realistic noise, and takes 220 and 223 into validation instead. Validation now holds 124 (bundle branch block, a few F), 201 (S and V), 205 (V and F), 220 (S) and 223 (S, V and F). The change was made before any DS2 evaluation, using validation results only. Table~\ref{tab:final-dataset} gives the resulting counts: validation holds 329 S beats but only 32 fusion beats, which is a limitation of the dataset rather than of the split; no assignment of DS1 records gives both training and validation a large F class.
 
 \subsection{ECG Channel Selection}
 
@@ -38,6 +40,8 @@ The lead is selected by its name in the record header rather than by position, b
 No beat detector is used. R-peak positions are taken from the expert annotation files, which is the standard approach for this database and keeps the project focused on classification.
 
 Around each annotated R-peak a window of 90 samples before and 166 samples after the peak is extracted, giving a fixed input length of 256 samples, about 0.71 seconds at 360\,Hz. The window is asymmetric: 90 samples (250\,ms) before the peak covers the P wave, and 166 samples (460\,ms) after it covers the T wave at normal heart rates. A length of 256 is a power of two, which simplifies the memory layout on the MAX78002.
+
+\textbf{Revision in Submission 2.} Model selection (Section~\ref{sec:model-selection}) also tried a wider window of 256 samples before and 256 after the peak (512 samples, 1.42\,s), kept in \texttt{configs/preprocess\_w512.yaml}. It usually contains the previous and the next R-peak, so the network can see whether a beat came early, which is what separates an S beat from an N beat. That window doubled the S recall on the validation records and became the final input. All other preprocessing steps are unchanged.
 
 Figure~\ref{fig:beat-window} shows how one window is cut. The top panel shows the annotated R-peaks from the \texttt{.atr} file, each with its beat symbol and sample index. The bottom panel shows the window that is cut around one of them. The R-peak always sits at index 90, so every beat in the dataset is lined up in the same way.
 
@@ -112,11 +116,11 @@ The mapping from annotation symbol to class is a single dictionary in \texttt{sr
 
 \subsection{Class Imbalance}
 
-In the training set roughly 89.6\,\% of beats are normal, 1.7\,\% are S, 7.6\,\% are V and 1.0\,\% are F, so the ratio between the most and least common class is about 90 to one. With plain cross-entropy a network converges towards predicting N almost always, because that minimises the loss.
+In the training set roughly 90.0\,\% of beats are normal, 1.5\,\% are S, 7.5\,\% are V and 1.0\,\% are F, so the ratio between the most and least common class is about 95 to one. With plain cross-entropy a network converges towards predicting N almost always, because that minimises the loss.
 
-Two measures are combined. First, a \textbf{class-weighted cross-entropy loss}, with each class weighted by the inverse square root of its frequency; the square root moderates the weights so that rare classes are emphasised without destabilising training. Second, \textbf{oversampling of S and F} in the training sampler, so that each batch contains more minority beats than their natural share.
+Two measures are planned. First, a \textbf{class-weighted cross-entropy loss}, with each class weighted by the inverse square root of its frequency; the square root moderates the weights so that rare classes are emphasised without destabilising training. Second, \textbf{oversampling of the rare classes} in the training sampler, with each beat drawn in proportion to the inverse square root of its class frequency, so that each batch contains more minority beats than their natural share.
 
-Undersampling normal beats would discard most of the data. Focal loss is kept as a configurable alternative for model selection, and no balancing is included as a negative control. The final choice is made on validation macro-F1 and S/F recall, not on the test set.
+Undersampling normal beats would discard most of the data. Focal loss is kept as a configurable alternative for model selection, and no balancing is included as a negative control. The final choice is made on validation macro-F1, not on the test set. Section~\ref{sec:model-selection} reports the comparison: the two measures together turned out to be too strong for unseen records, and oversampling alone was selected.
 
 \subsection{Data Augmentation}
 
@@ -127,7 +131,7 @@ Augmentation is applied on the fly to training beats only. Validation and test b
   \item \textbf{Time shift} of up to $\pm 5$ samples, so the model tolerates small errors in R-peak alignment.
   \item \textbf{Baseline wander}, a low-frequency sinusoid added to the window, to prepare the model for imperfect baseline removal.
   \item \textbf{Gaussian noise} with a standard deviation of about 0.02 after normalisation.
-  \item \textbf{Real ECG noise} from the Noise Stress Test Database at a signal-to-noise ratio of 6\,dB or better, as an optional setting. One model is trained with and one without it to measure the effect in the noise experiment.
+  \item \textbf{Real ECG noise} from the Noise Stress Test Database at a signal-to-noise ratio of 6\,dB or better, as an optional setting. (Submission 2 note: this option was not used in the final training runs for lack of time; Section~\ref{sec:noise} discusses it as the first improvement to try.)
 \end{itemize}
 
 Beats are not stretched or compressed in time. QRS width is one of the main features separating V from N beats, so changing it would corrupt the labels.
@@ -136,14 +140,14 @@ Beats are not stretched or compressed in time. QRS width is one of the main feat
 
 \begin{table}[H]
   \centering
-  \caption{Beat counts per split, produced by \texttt{prepare\_data.py} and stored in \texttt{results/split\_stats.csv}.}
+  \caption{Beat counts per split with the revised validation records, produced by section 0.2 of \texttt{notebooks/EDA.ipynb} and stored in \texttt{results/split\_stats.csv}.}
   \label{tab:final-dataset}
   \rowcolors{2}{white}{rowtint}
   \begin{tabularx}{\linewidth}{l c R R R R R}
         \rowcolor{primaryblue}
     \hd{Split} & \hd{Records} & \hd{N} & \hd{S} & \hd{V} & \hd{F} & \hd{Total} \\
-    Train & 17 & 35\,414 & 684 & 3\,012 & 395 & 39\,505 \\
-    Validation & 5 & 10\,434 & 260 & 776 & 19 & 11\,489 \\
+    Train & 17 & 36\,112 & 615 & 2\,999 & 382 & 40\,108 \\
+    Validation & 5 & 9\,736 & 329 & 789 & 32 & 10\,886 \\
     Test (DS2) & 22 & 44\,240 & 1\,837 & 3\,220 & 388 & 49\,685 \\
     \bottomrule
   \end{tabularx}
@@ -161,11 +165,11 @@ Beats are not stretched or compressed in time. QRS width is one of the main feat
         \rowcolor{primaryblue}
     \hd{Item} & \hd{Value} \\
     Python             & 3.10 \\
-    Key packages       & wfdb 4.3.1, NumPy 2.2.6, SciPy 1.15.3, scikit-learn 1.7.2; exact versions in \texttt{requirements.txt} \\
+    Key packages       & wfdb 4.3.1, NumPy 2.2.6, SciPy 1.15.3, scikit-learn 1.7.2, PyTorch 2.14.1; exact versions in \texttt{requirements.txt} \\
     Random seed        & 42, applied to Python, NumPy and PyTorch \\
     Sampling frequency & 360\,Hz, no resampling \\
     Lead               & MLII, selected by name \\
-    Window             & 90 samples before the R-peak, 166 after; input size $1 \times 256$ \\
+    Window             & 90 samples before the R-peak, 166 after; input size $1 \times 256$ (Submission 1). Final model: 256 before, 256 after; $1 \times 512$ (\texttt{configs/preprocess\_w512.yaml}) \\
     Baseline removal   & Cascaded median filters, 200\,ms and 600\,ms \\
     Low-pass filter    & Butterworth, 40\,Hz cut-off, zero-phase \\
     Normalisation      & Per-beat z-score, clipped to $[-8, 8]$ \\
@@ -175,7 +179,4 @@ Beats are not stretched or compressed in time. QRS width is one of the main feat
 
 \end{table}
 
-Running the following command from a clean checkout, after downloading the data, regenerates every array and every number in this section:
-\begin{center}
-\texttt{python src/prepare\_data.py --config configs/preprocess.yaml}
-\end{center}
+Running \texttt{make eda} from a clean checkout (section 0 of \texttt{notebooks/EDA.ipynb}) downloads the data and regenerates every array and every number in this section. Section 2 of \texttt{notebooks/MODELING.ipynb} builds the 512-sample variant the same way.

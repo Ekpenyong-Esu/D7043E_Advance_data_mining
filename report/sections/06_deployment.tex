@@ -1,0 +1,76 @@
+\section{Deployment}
+\label{sec:deployment}
+
+In this course, deployment means software-level preparation for the MAX78002. No board was available, so this section reports what the Analog Devices toolchain accepted, quantised and synthesised, and nothing that would need hardware to measure.
+
+\subsection{MAX78002 Compatibility}
+\label{sec:compatibility}
+
+The MAX78002 CNN accelerator executes a fixed set of operations: 1D and 2D convolutions with small kernels, max and average pooling fused into the convolution that follows, ReLU, and fully connected layers realised as $1\times1$ convolutions on flattened data~\cite{ai8xsynthesis}. The network of Section~\ref{sec:edge-model} uses exactly these: four fused blocks of (MaxPool1d, Conv1d, ReLU) and one Linear layer. Each block maps to one accelerator layer, so the whole network is five layers. Table~\ref{tab:architecture} lists them with their shapes.
+
+\begin{itemize}[nosep]
+  \item \textbf{Input:} one channel of 512 signed 8-bit samples (the beat window divided by the clip limit 8 and scaled to $[-128, 127]$), loaded in CHW format into the data memory of processor 0.
+  \item \textbf{Output:} four 32-bit values, one per class, read back by the Cortex-M4 core; the class is their argmax (the generated \texttt{softmax.c} turns them into probabilities when needed).
+  \item \textbf{Parameters:} 25\,348 weights and biases after BatchNorm folding, stored as INT8. The synthesiser reports 25\,168 bytes of kernel memory out of 2\,396\,160 and 180 bytes of bias memory (Table~\ref{tab:deployment-evidence}), about 1\,\% of the chip.
+  \item \textbf{Layer limits:} kernel lengths 5 and 3 (allowed 1 to 9), padding 2 and 1 (allowed 0 to 2), pool sizes 2 and 4 (allowed 1 to 16), stride 1, at most 64 input channels, and a flattened input of 1\,024 values for the Linear layer (the ai8x limit). The largest activation is $16 \times 512 = 8\,192$ bytes, far below the 20\,480 bytes per channel group of the data memory.
+\end{itemize}
+
+BatchNorm layers are used in training only. Before quantisation they are folded into the weights and biases of the preceding convolutions (\texttt{ai8x.fuse\_bn\_layers}), which is the standard procedure for this accelerator~\cite{jacob2018quantization}. Dropout is the identity at inference. Neither appears in the synthesised network.
+
+\subsection{MAX78002 Toolchain}
+\label{sec:toolchain}
+
+The two Analog Devices repositories were used as supplied~\cite{ai8xtraining,ai8xsynthesis}, cloned by \texttt{make toolchain}:
+
+\begin{enumerate}[nosep]
+  \item \textbf{Preparation (ai8x-training).} The network is built from the \texttt{ai8x} layer wrappers (\texttt{FusedMaxPoolConv1dReLU}, \texttt{FusedConv1dReLU}, \texttt{Linear}) in \texttt{src/ecg/models/ai8x\_cnn.py}. The wrappers check every layer against the accelerator limits when the model is built, behave like ordinary PyTorch layers in FP32, and implement quantisation-aware training and INT8 simulation. Training uses the project's own loop with these layers; the files in \texttt{max78002/model\_configuration/} register the same network and dataset in the official \texttt{train.py} for anyone who prefers that route.
+  \item \textbf{Quantisation-aware training.} After the FP32 model is chosen, BatchNorm is folded, the activation range of every layer is measured on training data and turned into a power-of-two scale per layer (ai8x's activation thresholds), and the network is fine-tuned for 15 epochs with 8-bit weights and clamped activations (\texttt{ai8x.initiate\_qat}). Section~\ref{sec:quantization} shows why this step is necessary.
+  \item \textbf{Quantisation (ai8x-synthesis).} \texttt{quantize.py --device MAX78002} converts the checkpoint to integer weights, biases and output shifts. It was run on the FP32 weights (post-training quantisation) and on the QAT weights. Logs and both INT8 checkpoints are in \texttt{max78002/quantization\_output/}.
+  \item \textbf{Synthesis and C code.} \texttt{ai8xize.py --device MAX78002} reads the INT8 checkpoint, the network description \texttt{max78002/model\_configuration/ecg-max78002.yaml} (generated from \texttt{configs/model.yaml}) and one sample beat, and writes the C project in \texttt{max78002/synthesis\_output/ecg-max78002/}: \texttt{cnn.c} and \texttt{cnn.h} (accelerator configuration, weight loading, inference), \texttt{weights.h}, \texttt{sampledata.h}, \texttt{sampleoutput.h}, \texttt{main.c} with a known-answer test, \texttt{softmax.c} and a Makefile for the MSDK.
+\end{enumerate}
+
+The first synthesis attempt failed with ``Layer 0 output is overwriting input'': the network description placed the first layer's output at data-memory offset 0, where the input is loaded. Alternating the output offsets between 0x8000 and 0x0000 fixed it. The second attempt failed because the architecture name in the checkpoint did not match the YAML; both now use \texttt{ai87ecgnet}. No change to the network itself was needed at any point.
+
+\subsection{Deployment Evidence}
+\label{sec:evidence}
+
+\input{tables/deployment_evidence}
+
+The last row is a check that goes beyond the toolchain's own exit codes. The synthesiser computes the network output for the sample beat with its bit-exact model of the accelerator and writes it into \texttt{sampleoutput.h}, where \texttt{main.c} compares it with the real hardware output. The same INT8 checkpoint was run on the same beat in the Python integer simulation (\texttt{ai8x} with \texttt{simulate=True}, the mode behind every INT8 score in Section~\ref{sec:evaluation}). The four output values agree exactly, so the INT8 results reported in this document describe the arithmetic the generated code will execute.
+
+\subsection{Hardware Limitations}
+\label{sec:hardware-limitations}
+
+\begin{table}[H]
+  \centering
+  \caption{What this project verified, and what it could not.}
+  \label{tab:verified}
+  \rowcolors{2}{white}{rowtint}
+  \begin{tabularx}{\linewidth}{Y Y}
+        \rowcolor{primaryblue}
+    \hd{Software verified} & \hd{Hardware verified} \\
+    The network uses only accelerator operations and passes the layer checks of \texttt{ai8x} and \texttt{ai8xize.py} & Nothing. No MAX78002 board was used \\
+    INT8 accuracy, macro-F1 and per-class scores on DS2, in the bit-exact integer simulation & Inference latency: not measured \\
+    Generated C project with weights, sample input and known-answer test & Power and energy per inference: not measured \\
+    Weight memory (25\,168 bytes) and data memory from the synthesiser & Accuracy on the device: not measured \\
+    Python simulation and synthesiser agree on the sample output & Real-time behaviour with a live ECG front end: not measured \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+The numbers in this report are therefore estimates of what the device would do, not measurements. The synthesiser's operation count (967\,680 operations per beat, of which 942\,080 multiply-accumulates) gives an idea of the workload, but no latency is claimed from it.
+
+\subsection{Proposed Hardware Validation}
+\label{sec:hardware-validation}
+
+With a MAX78002 evaluation kit the following steps would close the gap, in this order:
+
+\begin{enumerate}[nosep]
+  \item \textbf{Load the generated model.} Build \texttt{max78002/synthesis\_output/ecg-max78002/} with the MSDK and flash it. \texttt{main.c} loads the weights, runs the sample beat and compares the output with \texttt{sampleoutput.h}; a pass shows that weights, layer configuration and data layout are correct on silicon.
+  \item \textbf{Identical inputs.} Replace the built-in sample with DS2 beats streamed over the serial port, already preprocessed exactly as in Section~\ref{sec:data-preparation} and scaled to $[-128, 127]$ with \texttt{src/ecg/deployment/sample\_input.py}, so that the device and Python see the same bytes.
+  \item \textbf{Compare outputs.} Read back the four output values per beat and compare them with the Python INT8 simulation. They must match exactly; then the device's DS2 confusion matrix equals Table~\ref{tab:per-class} by construction.
+  \item \textbf{Intermediate consistency.} If any output differs, dump the layer outputs with \texttt{ai8xize.py --log-intermediate} and read the corresponding data-memory regions from the device, to find the first layer that diverges.
+  \item \textbf{Inference time.} Use the accelerator's cycle counter and a GPIO toggle around \texttt{cnn\_start} and the completion interrupt to measure latency per beat, with the clock settings of \texttt{cnn.c}.
+  \item \textbf{Energy.} Use the evaluation kit's power monitor to measure current during repeated inference, and report energy per beat separately for the accelerator and the Cortex-M4.
+  \item \textbf{Live signal.} Finally, feed the ECG front end with a signal generator or a recorded MIT-BIH record and check that the on-device preprocessing (median filters, normalisation) reproduces the Python arrays within rounding.
+\end{enumerate}

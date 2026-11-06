@@ -1,4 +1,4 @@
-# Submission 1 (data preparation and EDA). Pinned to the versions used to generate results/.
+# Pinned to the versions used to generate results/.
 ipykernel==7.3.0
 jupyter==1.1.1
 matplotlib==3.10.9
@@ -11,6 +11,11 @@ pyyaml==6.0.3
 scikit-learn==1.7.2
 scipy==1.15.3
 wfdb==4.3.1
+
+# Submission 2: PyTorch (CUDA 13 build; the CPU build from https://download.pytorch.org/whl/cpu works too)
+# and tqdm, which ai8x.py imports. The ai8x toolchain itself is installed by `make toolchain`.
+torch==2.14.1
+tqdm==4.67.1
 
 # Development: type checking (mypy config in pyproject.toml)
 mypy==2.3.1

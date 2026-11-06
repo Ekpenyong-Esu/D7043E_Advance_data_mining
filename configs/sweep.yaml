@@ -1,0 +1,50 @@
+# Model-selection sweep, report section 4.4. Every run changes a few keys of model.yaml.
+# All runs are compared on validation macro-F1. DS2 is never used here.
+#
+# The stages run in order. Each stage starts from the settings of the best run so far, so a
+# later stage only has to vary what it is about. The best run over all stages is the final model.
+stages:
+  - name: class imbalance           # with the architecture and window of model.yaml
+    runs:
+      - name: cnn_weights_oversample        # report section 3.6 plan: weighted loss plus oversampling
+        training: {loss: weighted_ce, class_weight_power: 0.5, oversample_power: 0.5}
+      - name: cnn_weights_only
+        training: {loss: weighted_ce, class_weight_power: 0.5, oversample_power: 0}
+      - name: cnn_oversample_only
+        training: {loss: ce, oversample_power: 0.5}
+      - name: cnn_mild_balance
+        training: {loss: weighted_ce, class_weight_power: 0.25, oversample_power: 0.25}
+      - name: cnn_focal
+        training: {loss: focal, class_weight_power: 0.5, oversample_power: 0}
+      - name: cnn_plain_ce                  # negative control: no balancing at all
+        training: {loss: ce, oversample_power: 0}
+
+  - name: architecture, regularisation, augmentation, window
+    runs:
+      - name: cnn_small
+        model: {channels: [8, 16, 32, 32]}
+      - name: cnn_large
+        model: {channels: [32, 64, 64, 64]}
+      - name: cnn_regularised
+        model: {dropout: 0.3}
+        training: {weight_decay: 0.0001}
+      - name: cnn_batchnorm
+        model: {batchnorm: true}
+      - name: cnn_no_aug
+        augmentation: {enabled: false}
+      - name: cnn_w512                      # wider window (configs/preprocess_w512.yaml); one more pool keeps the fc input at 1024
+        data: configs/preprocess_w512.yaml
+        model: {pools: [1, 2, 4, 4]}
+
+  - name: around the stage-2 winner         # the wide window won stage 2; vary the rest once more on top of it
+    runs:
+      - name: cnn_w512_mild_balance
+        training: {loss: weighted_ce, class_weight_power: 0.25, oversample_power: 0.25}
+      - name: cnn_w512_batchnorm
+        model: {batchnorm: true}
+      - name: cnn_w512_no_aug
+        augmentation: {enabled: false}
+      - name: cnn_w512_small                # same window, a quarter of the weights: for the robustness-versus-size comparison
+        model: {channels: [8, 16, 32, 32]}
+      - name: cnn_w512_large
+        model: {channels: [32, 64, 64, 64]}

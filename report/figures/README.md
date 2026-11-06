@@ -1,15 +1,11 @@
-# report/figures/
+# results/figures/
 
-Figures included by the report sections.
+Figures of report sections 4 to 6, drawn by `notebooks/MODELING.ipynb` with `src/ecg/evaluation/plots.py`. Section 10 of the notebook copies them to `report/figures/`.
 
-Start with `eda_raw_ecg.png`. The EDA figures follow the order of report section 2.3:
+Start with `learning_curve.png`. In report order:
 
-1. `eda_raw_ecg.png`: ten seconds of one record.
-2. `eda_class_examples.png`: beats from each class.
-3. `eda_class_distribution.png`: beats per class in DS1 and DS2.
-4. `eda_record_distribution.png`: beats per class per record.
-5. `eda_amplitude.png`: R-peak height per record.
-6. `eda_noisy.png`: noisy records and the NSTDB noise types.
-7. `aug_amplitude_scale.png`: one beat at three amplitude scales, for section 3.7.
-
-How they connect: `notebooks/EDA.ipynb` draws these with `src/ecg/eda/plots.py` into `results/eda/figures/`, and they are copied here by hand. The `.tex` files in `../sections/` include them.
+1. `learning_curve.png`: training loss and validation scores per epoch of the final run (section 4.3).
+2. `fp32_vs_int8.png`: macro-F1 and per-class recall of the FP32 and INT8 models on DS2 (section 5.3).
+3. `confusion_matrix_<model>.png`: one per model on DS2 (section 5.2).
+4. `noise_results.png`: macro-F1 against SNR per noise type, and per-class F1 (section 5.4).
+5. `error_examples.png` and `error_examples_noise.png`: misclassified beats, clean and at 0 dB (section 5.5).

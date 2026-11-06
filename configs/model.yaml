@@ -1,0 +1,55 @@
+# The 1D CNN for the MAX78002: architecture, training, augmentation, quantisation and toolchain paths.
+# Every number used by notebooks/MODELING.ipynb lives here or in preprocess.yaml (the data).
+name: cnn_base
+seed: 42
+data: configs/preprocess.yaml     # beat window, filters, normalisation and the processed-data paths come from here
+arch: ai87ecgnet                  # model name written into checkpoints and the ai8xize network YAML
+dataset: ecg_mitbih
+
+model:
+  type: cnn1d
+  channels: [16, 32, 64, 64]      # output channels of the four conv blocks
+  kernels: [5, 5, 3, 3]           # kernel length per block (the chip allows 1 to 9)
+  paddings: [2, 2, 1, 1]          # zero padding per block (the chip allows 0 to 2); k=5,p=2 and k=3,p=1 keep the length
+  pools: [1, 2, 2, 4]             # max-pool placed in front of each conv; 1 = no pool. Fused into the conv on the chip
+  batchnorm: false                # BatchNorm1d after each conv; folded into the conv weights before quantisation
+  dropout: 0.0                    # dropout before the output layer, training only
+  num_classes: 4
+
+training:
+  device: auto                    # auto = GPU if there is one
+  optimizer: adam
+  lr: 0.001
+  weight_decay: 0.0
+  scheduler: cosine               # cosine | none
+  batch_size: 128
+  epochs: 60                      # upper limit; early stopping usually ends sooner
+  loss: weighted_ce               # weighted_ce | ce | focal
+  class_weight_power: 0.5         # weight of class c = (N / count_c) ** power
+  focal_gamma: 2.0
+  oversample_power: 0.5           # sampler weight of a beat = (1 / class frequency) ** power; 0 = off
+  early_stopping_patience: 10     # epochs without a better validation macro-F1
+  selection_metric: macro_f1      # on the validation records only, never on DS2
+
+augmentation:                     # training beats only, applied on the fly (report section 3.7)
+  enabled: true
+  amplitude_scale: [0.8, 1.2]
+  shift_samples: 5
+  baseline_wander_amplitude: 0.3  # peak of the added slow sine, in normalised units (the R-peak is 5 to 7)
+  gaussian_noise_std: 0.02
+
+qat:                              # quantisation-aware fine-tuning, started from the FP32 checkpoint
+  weight_bits: 8
+  epochs: 15
+  lr: 0.0002
+  activation_thresholds: true     # measure the activation range per layer first and scale it into the 8-bit range (ai8x pre_qat)
+  outlier_removal_z_score: 8.0
+
+paths:
+  checkpoints: results/checkpoints
+  experiments: results/experiments.csv
+  max78002: max78002
+
+toolchain:                        # cloned by `make toolchain`, git-ignored
+  training: toolchain/ai8x-training
+  synthesis: toolchain/ai8x-synthesis

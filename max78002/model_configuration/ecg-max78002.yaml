@@ -1,0 +1,43 @@
+---
+# MAX78002 network description for ai8xize.py, generated from configs/model.yaml by
+# src/ecg/deployment/network_yaml.py. One entry per accelerator layer, in order.
+arch: ai87ecgnet
+dataset: ecg_mitbih
+layers:
+- pad: 2
+  activate: ReLU
+  out_offset: 0x8000
+  processors: 0x0000000000000001
+  operation: Conv1d
+  kernel_size: 5
+  data_format: CHW
+- max_pool: 2
+  pool_stride: 2
+  pad: 2
+  activate: ReLU
+  out_offset: 0x0000
+  processors: 0x000000000000ffff
+  operation: Conv1d
+  kernel_size: 5
+- max_pool: 4
+  pool_stride: 4
+  pad: 1
+  activate: ReLU
+  out_offset: 0x8000
+  processors: 0x00000000ffffffff
+  operation: Conv1d
+  kernel_size: 3
+- max_pool: 4
+  pool_stride: 4
+  pad: 1
+  activate: ReLU
+  out_offset: 0x0000
+  processors: 0xffffffffffffffff
+  operation: Conv1d
+  kernel_size: 3
+- flatten: true
+  out_offset: 0x8000
+  processors: 0xffffffffffffffff
+  operation: MLP
+  output_width: 32
+  activate: None

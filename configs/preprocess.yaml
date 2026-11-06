@@ -6,7 +6,7 @@
 #   T wave      = ventricular repolarization (ventricles reset for the next beat)
 #                 heart part: ventricles (lower chambers)
 #
-# Data preparation. Every number used by src/prepare_data.py lives here.
+# Data preparation. Every number used by the preprocessing step of notebooks/EDA.ipynb lives here.
 seed: 42
 fs: 360      # The ECG machine took 360 measurements every second
 lead: MLII                      # selected by name, never by index (record 114 is swapped)
@@ -18,7 +18,11 @@ paths:
   results: results
 
 records:
-  validation: [118,124,201,203,205]      # subset of DS1; train = DS1 - validation. DS1 and DS2 are in src/ecg/constants.py. Keeps 208 (most F beats) and 209 (most S beats) in training
+  validation: [124,201,205,220,223]      # subset of DS1; train = DS1 - validation. DS1 and DS2 are in src/ecg/constants.py. Keeps 208 (most F beats) and 209 (most S beats) in training.
+                                         # Submission 2 revision (was [118,124,201,203,205]): 118 and 203 moved to training, 220 and 223 to validation.
+                                         # 118: training now contains right-bundle-branch-block beats, validation keeps one such record (124).
+                                         # 203: the noisiest record of the database made up a quarter of the validation beats and dominated model
+                                         # selection; in training it teaches the model realistic noise instead. See report section 3.1.
 
 beat:
   samples_before: 90 # To capture the P (atrial) value before the R (ventricular) the tallest peak

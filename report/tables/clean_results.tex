@@ -1,0 +1,14 @@
+\begin{table}[H]
+  \centering
+  \caption{Clean DS2 test results. The parameter count of the random forest is its number of tree nodes.}
+  \label{tab:clean-results}
+  \rowcolors{2}{white}{rowtint}
+  \begin{tabularx}{\linewidth}{lRRRR}
+    \rowcolor{primaryblue}
+    \hd{Metric} & \hd{Logistic regression} & \hd{Random forest} & \hd{FP32 CNN} & \hd{INT8 CNN (QAT)} \\
+    Accuracy & 0.782 & 0.935 & 0.921 & 0.916 \\
+    Macro-F1 & 0.484 & 0.461 & 0.505 & 0.493 \\
+    Model parameters & 1\,040 & 150\,574 & 25\,700 & 25\,348 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

@@ -1,0 +1,27 @@
+{
+  "classes": [
+    "N",
+    "S",
+    "V",
+    "F"
+  ],
+  "symbol_to_class": {
+    "N": "N",
+    "L": "N",
+    "R": "N",
+    "e": "N",
+    "j": "N",
+    "A": "S",
+    "a": "S",
+    "J": "S",
+    "S": "S",
+    "V": "V",
+    "E": "V",
+    "F": "F"
+  },
+  "excluded_beat_symbols": [
+    "/",
+    "Q",
+    "f"
+  ]
+}

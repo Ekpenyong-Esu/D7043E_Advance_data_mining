@@ -85,7 +85,7 @@ def beat_window(r: Record, lead: str, before: int, after: int, beat_no: int = 5,
     top = float(w.max()) + 0.15 * float(np.ptp(w))
     for lo, hi, txt in [(0, before, f"{before} samples before ({before / r.fs * 1000:.0f} ms): P wave"),
                         (before, before + after, f"{after} samples from the peak on ({after / r.fs * 1000:.0f} ms): QRS + T wave")]:
-        ax.annotate("", (lo, top), (hi - 1, top), arrowprops=dict(arrowstyle="<->", color=INK_SOFT, linewidth=0.8))
+        ax.annotate("", (lo, top), (hi - 1, top), arrowprops={"arrowstyle": "<->", "color": INK_SOFT, "linewidth": 0.8})
         ax.annotate(txt, ((lo + hi) / 2, top), xytext=(0, 3), textcoords="offset points", ha="center", va="bottom", fontsize=7, color=INK_SOFT)
     ax.set_xticks([0, before, before + after - 1]); ax.set_xlim(-3, before + after + 2)
     ax.set_ylim(top=top + 0.2 * float(np.ptp(w)))

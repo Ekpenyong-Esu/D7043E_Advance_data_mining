@@ -21,7 +21,7 @@ def split_statistics(counts: dict[str, np.ndarray], records: dict[str, list[int]
     rows = []
     for name, y in counts.items():
         per_class = {c: int((y == i).sum()) for i, c in enumerate(CLASS_NAMES)}
-        rows.append({"split": name, "records": len(records[name]), **per_class, "total": int(len(y))})
+        rows.append({"split": name, "records": len(records[name]), **per_class, "total": len(y)})
     return pd.DataFrame(rows)
 
 

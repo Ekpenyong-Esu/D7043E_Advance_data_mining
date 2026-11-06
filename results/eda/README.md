@@ -18,5 +18,5 @@ How they connect:
 - The figures in `figures/` are drawn from these same tables by `src/ecg/eda/plots.py`.
 - The class table in report section 2.2 quotes `class_totals.csv`.
 - `notebooks/EDA.ipynb` also writes `figures/*.png` and LaTeX tables `tables/*.tex`
-  (made by `src/ecg/eda/latex.py`). Copy them by hand to `report/figures/` and
+  (made by `src/ecg/eda/latex.py`). Its section 3 copies them to `report/figures/` and
   `report/tables/`.

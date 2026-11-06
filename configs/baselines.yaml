@@ -1,0 +1,20 @@
+# The classical baselines of report section 4.1. Both see the flattened beat plus the three RR features.
+seed: 42
+data: configs/preprocess.yaml
+paths:
+  checkpoints: results/checkpoints
+  experiments: results/experiments.csv
+
+runs:
+  - name: baseline_lr
+    model:
+      type: logistic_regression
+      class_weight: balanced
+      C: 1.0
+      max_iter: 2000
+  - name: baseline_rf
+    model:
+      type: random_forest
+      class_weight: balanced
+      n_estimators: 200
+      min_samples_leaf: 2

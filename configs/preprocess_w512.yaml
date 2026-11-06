@@ -1,0 +1,31 @@
+# Submission 2 variant of preprocess.yaml with a wider beat window: 256 samples before and 256 after the R-peak
+# (1.42 s). The window then usually contains the previous and the next R-peak, so the CNN can see the timing
+# that separates an early S beat from an N beat. Everything else is identical to preprocess.yaml.
+# notebooks/MODELING.ipynb builds data/processed_w512/ from this file when the sweep needs it.
+seed: 42
+fs: 360
+lead: MLII
+
+paths:
+  raw_mitdb: data/raw/mitdb
+  raw_nstdb: data/raw/nstdb
+  processed: data/processed_w512
+  results: results/w512
+
+records:
+  validation: [124,201,205,220,223]      # the same validation records as preprocess.yaml
+
+beat:
+  samples_before: 256
+  samples_after: 256                     # total window = 512
+
+filter:
+  enabled: true
+  method: median
+  median_kernels_ms: [200, 600]
+  highpass_hz: 0.5
+  lowpass_hz: 40
+
+normalize:
+  method: zscore
+  clip: 8.0

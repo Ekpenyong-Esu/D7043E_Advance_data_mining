@@ -16,10 +16,24 @@ from ecg.logging_utils import get_logger
 log = get_logger(__name__)
 
 
+def read_signal(cfg: dict, record_id: int):
+    """Read one record and pick the lead. Returns ``(record, raw signal)``, before any filtering.
+
+    The noise experiment adds noise to this raw signal and then calls ``beats_from_signal``,
+    so noisy beats go through exactly the same steps as clean ones.
+    """
+    rec = records.read_record(cfg["paths"]["raw_mitdb"], record_id)
+    return rec, channels.select_lead(rec, cfg["lead"])
+
+
 def process_record(cfg: dict, record_id: int) -> dict:
     """Prepare one record. Returns a dict with X, y, rr, excluded counts and the edge-dropped count."""
-    rec = records.read_record(cfg["paths"]["raw_mitdb"], record_id)
-    x = channels.select_lead(rec, cfg["lead"])
+    rec, x = read_signal(cfg, record_id)
+    return beats_from_signal(cfg, rec, x)
+
+
+def beats_from_signal(cfg: dict, rec, x: np.ndarray) -> dict:
+    """Filter the signal ``x`` of ``rec``, cut it into beats, normalise, and compute the RR features."""
     x = filters.apply_filters(x, rec.fs, cfg)
 
     # Map every annotation to a class. ``keep`` marks the real beats we use.

@@ -1,0 +1,7 @@
+Layer,Input,Operation,Output,Parameters
+conv1,1 x 512,"Conv1d k=5 p=2, ReLU",16 x 512,96
+conv2,16 x 512,"MaxPool 2, Conv1d k=5 p=2, ReLU",32 x 256,2592
+conv3,32 x 256,"MaxPool 4, Conv1d k=3 p=1, ReLU",64 x 64,6208
+conv4,64 x 64,"MaxPool 4, Conv1d k=3 p=1, ReLU",64 x 16,12352
+fc,1024 (flattened),Linear,4,4100
+Total,,,,25348

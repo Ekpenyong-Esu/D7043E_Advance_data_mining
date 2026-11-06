@@ -28,3 +28,9 @@ report/*.synctex.gz
 report/report.pdf
 results/eda/*
 !results/eda/README.md
+# Submission 2: the Analog Devices repositories are cloned by `make toolchain`
+toolchain/
+# the random-forest baseline is large and reproducible; every other checkpoint is small and kept
+results/checkpoints/baseline_rf.joblib
+# the synthesiser's verbose log is several hundred kB; the summary is in max78002/synthesis_output/ai8xize.log
+max78002/synthesis_output/*/log.txt

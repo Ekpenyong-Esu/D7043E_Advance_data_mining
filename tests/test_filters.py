@@ -1,7 +1,7 @@
 """Check the filters on made-up signals."""
 import numpy as np
 
-from ecg.data.filters import remove_baseline_median, lowpass
+from ecg.data.filters import lowpass, remove_baseline_median
 
 
 def test_median_baseline_removes_slow_drift():
@@ -18,6 +18,6 @@ def test_lowpass_attenuates_high_frequency():
     fs = 360; t = np.arange(fs * 2) / fs
     x = np.sin(2 * np.pi * 5 * t) + np.sin(2 * np.pi * 100 * t)   # a 5 Hz wave plus a 100 Hz wave
     y = lowpass(x, fs, 40)
-    hf = np.abs(np.fft.rfft(y))[int(100 * 2)]         # strength left at 100 Hz
-    lf = np.abs(np.fft.rfft(y))[int(5 * 2)]           # strength left at 5 Hz
+    hf = np.abs(np.fft.rfft(y))[(100 * 2)]         # strength left at 100 Hz
+    lf = np.abs(np.fft.rfft(y))[(5 * 2)]           # strength left at 5 Hz
     assert hf < 0.05 * lf                             # the 100 Hz wave is almost gone
