@@ -34,3 +34,4 @@ toolchain/
 results/checkpoints/baseline_rf.joblib
 # the synthesiser's verbose log is several hundred kB; the summary is in max78002/synthesis_output/ai8xize.log
 max78002/synthesis_output/*/log.txt
+data/processed_w512/*
