@@ -1,7 +1,7 @@
 \section{Data Preparation}
 \label{sec:data-preparation}
 
-All steps in this section are implemented in the \texttt{ecg.data} package and run from section 0.2 of \texttt{notebooks/EDA.ipynb}. Every tunable number comes from \texttt{configs/preprocess.yaml}, so the whole pipeline can be rerun from the raw PhysioNet files with one command.
+All steps in this section are implemented in the \texttt{ecg.data} package and run from section 0.2 of \texttt{notebooks/EDA.ipynb}. Every tunable number comes from \texttt{configs/preprocess.yaml} (\texttt{configs/preprocess\_w512.yaml} for the final 512-sample window, \texttt{configs/model.yaml} for balancing and augmentation), so the whole pipeline can be rerun from the raw PhysioNet files with one command.
 
 \subsection{Record Selection}
 \label{sec:record-selection}
@@ -26,7 +26,7 @@ The split follows the inter-patient partition of de~Chazal et al.~\cite{dechazal
 
 The validation records were chosen after inspecting the per-record class counts (Figure~\ref{fig:record-dist}). A first choice that placed record 208 in validation left only 20 fusion beats for training, because record 208 alone holds 372 of the 415 F beats in DS1. The choice keeps records 208 and 209, which hold most of the F and S beats respectively, in training. Validation is used for early stopping, hyperparameter choice and model selection. DS2 is not used until the final model is fixed.
 
-\textbf{Revision in Submission 2.} Submission 1 used records 118, 124, 201, 203 and 205 for validation. The first training runs of the modeling stage showed two problems with that choice, and CRISP-DM asks for exactly this kind of return to an earlier stage. First, records 118 and 124 are the only two DS1 records whose beats show right bundle branch block (they contain 2\,166 and 1\,531 \texttt{R} beats, which map to class N). With both in validation, the training set had almost no beats of that shape, and DS2 contains two more such records (212 and 231). Second, record 203 is the noisiest record in the database (Table~\ref{tab:noise-marks}) and made up a quarter of the validation beats. Its noisy N beats were predicted as V or F more and more as training went on, so the validation score fell from the first epoch while the other four records improved; early stopping then always picked an almost untrained network. The final split therefore moves 118 and 203 into training, where the first adds bundle branch block beats and the second adds realistic noise, and takes 220 and 223 into validation instead. Validation now holds 124 (bundle branch block, a few F), 201 (S and V), 205 (V and F), 220 (S) and 223 (S, V and F). The change was made before any DS2 evaluation, using validation results only. Table~\ref{tab:final-dataset} gives the resulting counts: validation holds 329 S beats but only 32 fusion beats, which is a limitation of the dataset rather than of the split; no assignment of DS1 records gives both training and validation a large F class.
+\textbf{Revision in Submission 2.} Submission 1 used records 118, 124, 201, 203 and 205 for validation. The first training runs of the modeling stage showed two problems with that choice, and CRISP-DM allows this kind of return to an earlier stage. First, records 118 and 124 are the only two DS1 records whose beats show right bundle branch block (they contain 2\,166 and 1\,531 \texttt{R} beats, which map to class N). With both in validation, the training set had almost no beats of that shape, and DS2 contains two more such records (212 and 231). Second, record 203 is the noisiest record in the database (Table~\ref{tab:noise-marks}) and made up a quarter of the validation beats. Its noisy N beats were predicted as V or F more and more as training went on, so the validation score fell from the first epoch while the other four records improved; early stopping then always picked an almost untrained network. The final split therefore moves 118 and 203 into training, where the first adds bundle branch block beats and the second adds realistic noise, and takes 220 and 223 into validation instead. Validation now holds 124 (bundle branch block, a few F), 201 (S and V), 205 (V and F), 220 (S) and 223 (S, V and F). The change was made before any DS2 evaluation, using validation results only. Table~\ref{tab:final-dataset} gives the resulting counts: validation holds 329 S beats but only 32 fusion beats, which is a limitation of the dataset rather than of the split; no assignment of DS1 records gives both training and validation a large F class.
 
 \subsection{ECG Channel Selection}
 
@@ -57,6 +57,7 @@ Beats whose window extends past the start or end of the recording are dropped, w
 The window is described here because the steps that follow work on it. In the pipeline, though, the whole signal is filtered first and cut afterwards, as the next subsection shows.
 
 \subsection{Signal Preprocessing}
+\label{sec:preprocessing}
 
 The operations are applied in this order:
 
@@ -115,14 +116,16 @@ The mapping from annotation symbol to class is a single dictionary in \texttt{sr
 \end{table}
 
 \subsection{Class Imbalance}
+\label{sec:class-imbalance}
 
 In the training set roughly 90.0\,\% of beats are normal, 1.5\,\% are S, 7.5\,\% are V and 1.0\,\% are F, so the ratio between the most and least common class is about 95 to one. With plain cross-entropy a network converges towards predicting N almost always, because that minimises the loss.
 
-Two measures are planned. First, a \textbf{class-weighted cross-entropy loss}, with each class weighted by the inverse square root of its frequency; the square root moderates the weights so that rare classes are emphasised without destabilising training. Second, \textbf{oversampling of the rare classes} in the training sampler, with each beat drawn in proportion to the inverse square root of its class frequency, so that each batch contains more minority beats than their natural share.
+Two measures were planned in Submission 1. First, a \textbf{class-weighted cross-entropy loss}, with each class weighted by the inverse square root of its frequency; the square root moderates the weights so that rare classes are emphasised without destabilising training. Second, \textbf{oversampling of the rare classes} in the training sampler, with each beat drawn in proportion to the inverse square root of its class frequency, so that each batch contains more minority beats than their natural share.
 
 Undersampling normal beats would discard most of the data. Focal loss is kept as a configurable alternative for model selection, and no balancing is included as a negative control. The final choice is made on validation macro-F1, not on the test set. Section~\ref{sec:model-selection} reports the comparison: the two measures together turned out to be too strong for unseen records, and oversampling alone was selected.
 
 \subsection{Data Augmentation}
+\label{sec:augmentation}
 
 Augmentation is applied on the fly to training beats only. Validation and test beats are never augmented, so the validation score remains an unbiased estimate. Each transformation is a small random change that preserves the class:
 
@@ -140,7 +143,7 @@ Beats are not stretched or compressed in time. QRS width is one of the main feat
 
 \begin{table}[H]
   \centering
-  \caption{Beat counts per split with the revised validation records, produced by section 0.2 of \texttt{notebooks/EDA.ipynb} and stored in \texttt{results/split\_stats.csv}.}
+  \caption{Beat counts per split with the revised validation records, produced by section 0.2 of \texttt{notebooks/EDA.ipynb} and stored in \texttt{results/split\_stats.csv}. The total is 39 beats lower than in Table~\ref{tab:classes} because beats whose window extends past the record edge are dropped.}
   \label{tab:final-dataset}
   \rowcolors{2}{white}{rowtint}
   \begin{tabularx}{\linewidth}{l c R R R R R}

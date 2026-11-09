@@ -6,14 +6,14 @@ All models in this section are trained on the 17 training records and compared o
 \subsection{Baseline}
 \label{sec:baseline}
 
-Two classical models serve as reference points. Both receive the flattened beat window (the same 256 values the first CNN sees) plus the three RR-interval features of Section~\ref{sec:beat-extraction}: the time since the previous beat, the time to the next beat, and the ratio of the first to the local mean. The RR features are the standard hand-made timing cue that separates an early S beat from an N beat, so the baselines are not weak strawmen: on timing they know more than a single-beat CNN.
+Two classical models serve as reference points. Both receive the flattened beat window (the same 256 values the first CNN sees) plus the three RR-interval features of Section~\ref{sec:beat-extraction}: the time since the previous beat, the time to the next beat, and the ratio of the first to the local mean. The RR features are the standard hand-made timing cue that separates an early S beat from an N beat, so on timing the baselines know more than a single-beat CNN.
 
 \begin{itemize}[nosep]
   \item \textbf{Logistic regression} on standardised features, with balanced class weights.
   \item \textbf{Random forest} with 200 trees, at least two beats per leaf, and balanced class weights.
 \end{itemize}
 
-\input{tables/baselines}
+\input{../results/tables/baselines}
 
 Table~\ref{tab:baselines} shows the validation scores. The logistic regression reaches a macro-F1 of 0.46, the random forest 0.43. The forest is more accurate (0.93) but finds almost no S beats (recall 0.04) and no F beats, even though it has the RR features: with 90\,\% normal beats, the trees still favour the majority class on unseen records. The logistic regression trades accuracy for a better S recall (0.32). Both are far below the success criterion of 0.70, which sets the bar the CNN has to clear.
 
@@ -22,16 +22,16 @@ Table~\ref{tab:baselines} shows the validation scores. The logistic regression r
 
 The final network is a 1D CNN with four fused convolution blocks and one fully connected output layer (Table~\ref{tab:architecture}). It takes one channel of 512 samples, the wide beat window of Section~\ref{sec:beat-extraction}, scaled to $[-1, 1)$.
 
-\input{tables/model_layers}
+\input{../results/tables/model_layers}
 
 Each block is one accelerator layer: an optional max-pool, a convolution with zero padding, and a ReLU. The pools halve the length after the first block, then quarter it twice, so the 512 input samples become 16 positions with 64 channels, which are flattened into 1\,024 values for the output layer. Kernel lengths 5 and 3 with paddings 2 and 1 keep the length through each convolution. BatchNorm after every convolution (352 extra parameters) helped the wide-window model train in the sweep; it is folded into the convolution weights before quantisation and is absent from the deployed network, which has 25\,348 weights and biases.
 
-The architecture is appropriate for Edge-AI for four reasons. First, it uses only operations the MAX78002 accelerator executes natively (1D convolution with kernels up to 9, pooling fused into the convolution, ReLU, one small fully connected layer), so no operator falls back to the Cortex-M4 core. Second, it is small: 25\,348 parameters are about 25\,kB in INT8, 1\,\% of the chip's weight memory and a quarter of the 100\,000-parameter budget of Section~1.4. Third, its activations are small too; the largest intermediate tensor is $16 \times 512$ bytes. Fourth, the input is a fixed-size tensor, which is what the accelerator's data memory expects. Transformers, recurrent layers, attention and large residual networks were not considered, because they either use unsupported operators or do not fit; the course text excludes them for the same reasons.
+The architecture suits the accelerator. It uses only operations the MAX78002 executes natively (1D convolution with kernels up to 9, pooling fused into the convolution, ReLU, one small fully connected layer), so no operator falls back to the Cortex-M4 core. Its 25\,348 parameters are about 25\,kB in INT8, 1\,\% of the chip's weight memory and a quarter of the 100\,000-parameter budget of Section~\ref{sec:success-criteria}. The largest intermediate tensor is $16 \times 512$ bytes, and the input is a fixed-size tensor, which is what the accelerator's data memory expects. Transformers, recurrent layers, attention and large residual networks were not considered, because they either use unsupported operators or do not fit; the course text excludes them for the same reasons.
 
 \subsection{Training Configuration}
 \label{sec:training-config}
 
-\input{tables/training_config}
+\input{../results/tables/training_config}
 
 The loss is plain cross-entropy; the class imbalance is handled by the sampler, which draws each beat with probability proportional to the inverse square root of its class frequency, so about a third of every batch is S, V or F while N still dominates. Section~\ref{sec:model-selection} explains why this was preferred to class weights. Augmentation is applied on the fly to training beats only: amplitude scaling, a time shift of up to five samples, a slow sine as baseline wander, and light Gaussian noise. The learning rate follows a cosine decay and early stopping keeps the epoch with the best validation macro-F1 (Figure~\ref{fig:learning-curve}). All runs use seed 42 for Python, NumPy and PyTorch.
 
@@ -47,11 +47,11 @@ The loss is plain cross-entropy; the class imbalance is handled by the sampler, 
 
 Model selection was a staged sweep (\texttt{configs/sweep.yaml}), always scored by macro-F1 on the validation records. Each stage starts from the best run so far, so a later stage only has to vary what it is about. Table~\ref{tab:model-selection} lists every run.
 
-\input{tables/model_selection}
+\input{../results/tables/model_selection}
 
-\textbf{Stage 1: class imbalance}, with the 256-sample window and the architecture of \texttt{configs/model.yaml}. Six runs compared the plan of Section~3.6 (weighted loss plus oversampling, both with power 0.5), each measure alone, a milder version (power 0.25 for both), focal loss~\cite{lin2017focal}, and no balancing as a negative control. Oversampling alone won (macro-F1 0.569). The combination planned in Submission 1 was the worst run of the stage (0.536): weights and oversampling together give the rare classes about the same effective share as the normal class, and the network then predicts S and F far too often on unseen records, which costs more precision than it gains in recall. Plain cross-entropy had the highest accuracy (0.963) but the lowest S recall (0.14), the expected failure mode of ignoring the imbalance.
+\textbf{Stage 1: class imbalance}, with the 256-sample window and the architecture of \texttt{configs/model.yaml}. Six runs compared the plan of Section~\ref{sec:class-imbalance} (weighted loss plus oversampling, both with power 0.5), each measure alone, a milder version (power 0.25 for both), focal loss~\cite{lin2017focal}, and no balancing as a negative control. Oversampling alone won (macro-F1 0.569). The combination planned in Submission 1 was the worst run of the stage (0.536): weights and oversampling together give the rare classes about the same effective share as the normal class, and the network then predicts S and F far too often on unseen records, which costs more precision than it gains in recall. Plain cross-entropy had the highest accuracy (0.963) but the lowest S recall (0.14), the expected failure mode of ignoring the imbalance.
 
-\textbf{Stage 2: architecture, regularisation, augmentation and window}, on top of oversampling alone. A smaller network (channels 8, 16, 32, 32; 7\,428 parameters) and a larger one (32, 64, 64, 64; 39\,300 parameters) scored within 0.015 of the base network, so model size is not the bottleneck. Dropout with weight decay, BatchNorm and removing augmentation changed little. The wide 512-sample window was the only change that mattered: macro-F1 rose from 0.569 to 0.591 and S recall from 0.24 to 0.47, because the window now shows the previous beat and the network can see that an S beat arrives early. This is the single most important finding of the sweep, and it is a return to the data-preparation stage, documented in Section~\ref{sec:beat-extraction}.
+\textbf{Stage 2: architecture, regularisation, augmentation and window}, on top of oversampling alone. A smaller network (channels 8, 16, 32, 32; 7\,428 parameters) and a larger one (32, 64, 64, 64; 39\,300 parameters) scored within 0.015 of the base network, so model size is not the bottleneck. Dropout with weight decay, BatchNorm and removing augmentation changed little. The wide 512-sample window was the only change that mattered: macro-F1 rose from 0.569 to 0.591 and S recall from 0.24 to 0.47, because the window now shows the previous beat and the network can see that an S beat arrives early. This change returns to the data-preparation stage and is documented in Section~\ref{sec:beat-extraction}.
 
 \textbf{Stage 3: around the stage-2 winner.} With the wide window, BatchNorm now helped clearly (0.667, the best run overall, with accuracy 0.965, V recall 0.84 and S recall 0.40), while mild class weights, no augmentation, and the small and large variants stayed between 0.595 and 0.614. The small wide-window network keeps 0.598 with a quarter of the weights, which Section~\ref{sec:noise} uses for the robustness-versus-size comparison.
 
@@ -62,7 +62,7 @@ The final architecture was therefore selected because it had the highest validat
 
 The deployed model must run with 8-bit weights and 8-bit activations. Two routes were compared on the validation records (Table~\ref{tab:quantization-val}); the scores come from the ai8x integer simulation of the quantised checkpoints, which Section~\ref{sec:evidence} shows to be bit-exact with the synthesiser.
 
-\input{tables/quantization_val}
+\input{../results/tables/quantization_val}
 
 \textbf{Post-training quantisation (PTQ).} \texttt{quantize.py} was applied directly to the FP32 weights after BatchNorm folding. The result lost most of the signal: macro-F1 fell from 0.667 to 0.39, S recall to zero. The cause is not the 8-bit weights but the activations. The accelerator clamps every layer output to $[-1, 1)$ in 8-bit steps, while the FP32 network had learned activations several times larger, so most of its dynamic range was cut off.
 

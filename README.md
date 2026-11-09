@@ -125,7 +125,7 @@ make run        # = make eda, then make model
 | 7 | Error analysis | `results/figures/error_examples*.png` |
 | 8 | Synthesis with `ai8xize.py`, evidence table | `max78002/model_configuration/`, `max78002/synthesis_output/`, `results/deployment_evidence.csv` |
 | 9 | Success-criteria review | `results/success_criteria.csv` |
-| 10 | Copies into the report, tests, `report.pdf` | `report/figures/`, `report/tables/`, `report.pdf` |
+| 10 | Tests, `report.pdf` (the report reads `results/` directly) | `report.pdf` |
 
 Runs already listed in `results/experiments.csv` are skipped, so the notebook can be rerun quickly. Set `FORCE_TRAIN = True` in its first cell to train everything again. A full run from scratch takes about 40 minutes on a laptop GPU.
 

@@ -37,11 +37,6 @@
 
 % Colors
 \definecolor{primaryblue}{RGB}{30, 80, 162}
-\definecolor{lightgray}{RGB}{245, 245, 245}
-\definecolor{tpgreen}{RGB}{0, 128, 0}
-\definecolor{fpred}{RGB}{200, 0, 0}
-\definecolor{fnred}{RGB}{200, 0, 0}
-\definecolor{tnblue}{RGB}{0, 0, 180}
 
 % Section formatting
 \titleformat{\section}{\large\bfseries\color{primaryblue}}{\thesection}{0.6em}{}[\titlerule]
@@ -53,11 +48,7 @@
 \lhead{\textcolor{gray}{\small D7043E, Data Mining -- Group 16}}
 \rfoot{\thepage}
 
-% Useful macros
-\newcommand{\mat}[1]{\mathbf{#1}}
-\newcommand{\T}{\top}
-\newcommand{\tbd}[1][value]{\textcolor{fpred}{[#1]}}   % marks numbers to be filled from results/
-\graphicspath{{figures/}{images/}}
+\graphicspath{{../results/figures/}{../results/eda/figures/}{images/}}   % figures and tables are read straight from results/
 
 \addbibresource{references.bib}
 

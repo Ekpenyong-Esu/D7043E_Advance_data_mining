@@ -47,7 +47,7 @@ It is skipped when `data/processed/` already exists. Set `FORCE_PREPARE = True` 
 
 ### 3. Sections 2.1 to 2.6: EDA
 
-**What it does:** makes the figures and tables that describe the data. They go to `results/eda/`. Section 3 of the notebook then copies them into `report/figures/` and `report/tables/`.
+**What it does:** makes the figures and tables that describe the data. They go to `results/eda/`, where the report reads them directly.
 
 ### 4. Section 4: run the tests, Section 5: build the report
 

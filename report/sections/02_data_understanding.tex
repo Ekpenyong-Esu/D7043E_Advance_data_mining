@@ -64,7 +64,7 @@ Excluding the paced records leaves 44 records, split evenly into DS1 and DS2 as 
 
 \subsection{Exploratory Data Analysis}
 
-The full analysis is in \texttt{notebooks/EDA.ipynb}. The figures below summarise the main findings.
+The full analysis is in \texttt{notebooks/EDA.ipynb}. The figures below summarise the main findings. Class imbalance turns out to be the main data-quality issue.
 
 \textbf{The raw signal.} Figure~\ref{fig:raw-ecg} shows ten seconds of record 100, both channels. The MLII channel has a tall, sharp QRS complex on every beat, which makes it the preferred lead for beat analysis. The V1 channel shows the same beats with a smaller, partly inverted QRS.
 
@@ -111,7 +111,7 @@ The full analysis is in \texttt{notebooks/EDA.ipynb}. The figures below summaris
   \label{fig:record-dist}
 \end{figure}
 
-\input{tables/eda_class_counts_per_record}
+\input{../results/eda/tables/eda_class_counts_per_record}
 
 \textbf{Signal amplitude.} Figure~\ref{fig:amplitude} shows the distribution of R-peak amplitude per record. Amplitudes vary by a factor of several between records because electrode placement and skin contact differ between subjects. Each beat is therefore normalised individually rather than with one global scale.
 
@@ -137,25 +137,21 @@ The full analysis is in \texttt{notebooks/EDA.ipynb}. The figures below summaris
 
 \textbf{Extreme amplitudes.} A few records contain short bursts where the signal saturates at the limits of the 10\,mV range, usually during electrode movement. These segments are rare. Per-beat normalisation and clipping limit their effect on the input.
 
-\textbf{Corrupted segments.} The annotators marked noisy stretches with the \texttt{\textasciitilde} symbol. Table~\ref{tab:noise-marks} lists the records with the most of these marks. Record 105 has the most by far, followed by 203, 200 and 108. The noisy records are spread over both splits, so neither the training set nor the test set is much cleaner than the other. The beats inside these segments are kept, since a wearable will encounter the same kind of signal, but they are a likely source of label noise.
+\textbf{Corrupted segments.} The annotators marked noisy stretches with the \texttt{\textasciitilde} symbol. Table~\ref{tab:noise-marks} lists the records with the most of these marks. Record 105 has the most by far, followed by 203, 200 and 108. The noisy records are spread over both splits, so neither the training set nor the test set is much cleaner than the other. The beats inside these segments are kept, since a wearable will encounter the same kind of signal, but they are a likely source of label noise. Milder baseline wander is present in almost every record; it is removed in preprocessing rather than detected and skipped.
 
-\input{tables/eda_noise_marks}
-
-\textbf{Class imbalance.} Described above; it is the main data-quality issue.
+\input{../results/eda/tables/eda_noise_marks}
 
 \textbf{Differences between recordings.} Heart rate, beat shape, amplitude and noise level all vary from record to record. Some records show only normal rhythm, others show bundle branch block on every beat, and a few contain long runs of ventricular beats. Because of this variation, results on a small number of records can be misleading.
 
 \textbf{Differences between channels.} Table~\ref{tab:leads} shows which lead is stored in each channel. MLII is the first channel in 43 of the 44 records used, but in record 114 the two channels are stored in the opposite order. Selecting the lead by name rather than by column index avoids reading the wrong signal. The second channel also changes between records, so only MLII is the same in every record. Records 102 and 104 have no MLII; both are paced records and are already excluded.
 
-\input{tables/eda_leads}
-
-\textbf{Possible noisy regions.} Baseline wander is present to some degree in almost every record. It is removed in preprocessing rather than detected and skipped.
+\input{../results/eda/tables/eda_leads}
 
 \subsection{Leakage Analysis}
 
 Data leakage occurs when information from the test set reaches the model during training, so the test score no longer measures generalisation.
 
-A record is thirty minutes of ECG from one person. Its roughly 2\,000 beats share the same heart, electrodes and skin contact, so they are highly similar. If all beats were pooled, shuffled and split 80/20, nearly every test beat would have a near-duplicate in the training set. A model could then memorise each patient's waveform and exceed 99\,\% test accuracy without learning what distinguishes the classes. Studies using such splits report accuracies of this kind, which fall to 80--90\,\% when the same models are tested on unseen subjects. A wearable device only sees unseen subjects, so the shuffled score does not measure the quantity of interest.
+A record is thirty minutes of ECG from one person. Its roughly 2\,000 beats share the same heart, electrodes and skin contact, so they are highly similar. If all beats were pooled, shuffled and split 80/20, nearly every test beat would have a near-duplicate in the training set. A model could then memorise each patient's waveform and exceed 99\,\% test accuracy without learning what distinguishes the classes. Studies using such splits report accuracies of this kind, which fall to 80--90\,\% when the same models are tested on unseen subjects~\cite{dechazal2004,luz2016survey}. A wearable device only sees unseen subjects, so the shuffled score does not measure the quantity of interest.
 
 Three measures prevent this. First, the data is split by record using the standard inter-patient partition: 22 records form the development set DS1 and 22 different records form the test set DS2, with no record in both. The partition has one known weakness: records 201 and 202 come from the same subject, and the standard split places 201 in DS1 and 202 in DS2. The partition is kept as published so that results remain comparable with the literature, and this is noted as a limitation. Second, the training/validation split inside DS1 is also by record, so model selection uses subjects the model was not trained on. Third, the split is enforced in code: the split-building function rejects a validation record that is not in DS1 and checks that no record is listed twice, and the evaluation script refuses to run on DS2 without an explicit \texttt{--final} flag. DS2 is used once per final model, after all design decisions are fixed.
 

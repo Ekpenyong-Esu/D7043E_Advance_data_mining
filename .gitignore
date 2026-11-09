@@ -13,6 +13,7 @@ logs/
 *.log
 .mypy_cache/
 .ruff_cache/
+/.vscode/
 # LaTeX
 report/*.aux
 report/*.bbl
@@ -28,6 +29,9 @@ report/*.synctex.gz
 report/report.pdf
 results/eda/*
 !results/eda/README.md
+# the report reads the EDA figures and tables from here
+!results/eda/figures/
+!results/eda/tables/
 # Submission 2: the Analog Devices repositories are cloned by `make toolchain`
 toolchain/
 # the random-forest baseline is large and reproducible; every other checkpoint is small and kept
@@ -35,3 +39,5 @@ results/checkpoints/baseline_rf.joblib
 # the synthesiser's verbose log is several hundred kB; the summary is in max78002/synthesis_output/ai8xize.log
 max78002/synthesis_output/*/log.txt
 data/processed_w512/*
+# PTQ is only the comparison in report section 4.5; MODELING.ipynb section 4 regenerates it
+max78002/quantization_output/*_ptq-q.pth.tar

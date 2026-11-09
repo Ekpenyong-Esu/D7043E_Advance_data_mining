@@ -1,6 +1,6 @@
 # results/figures/
 
-Figures of report sections 4 to 6, drawn by `notebooks/MODELING.ipynb` with `src/ecg/evaluation/plots.py`. Section 10 of the notebook copies them to `report/figures/`.
+Figures of report sections 4 to 6, drawn by `notebooks/MODELING.ipynb` with `src/ecg/evaluation/plots.py`. The report reads them from here through `\graphicspath`.
 
 Start with `learning_curve.png`. In report order:
 

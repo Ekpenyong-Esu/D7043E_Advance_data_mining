@@ -7,7 +7,7 @@ Start with `ecg/README.md`, then the subpackage READMEs in the order it lists.
 How it connects:
 
 - `notebooks/EDA.ipynb` loads `configs/preprocess.yaml` with `ecg/config.py`, sets the seed with `ecg/seed.py`, then calls `ecg/data/pipeline.py`. That writes `data/processed/` and the tables in `results/`. It then calls `ecg/eda/` for the figures and tables of report section 2.
-- `notebooks/MODELING.ipynb` loads `configs/model.yaml` with `ecg/config.py`, then calls `ecg/training/` (baselines, sweep, CNN, QAT), `ecg/deployment/` (quantisation, synthesis), `ecg/evaluation/` (DS2 scores, errors, figures) and `ecg/noise/` (noise test). It writes `results/`, `max78002/` and `report/figures/`, `report/tables/`.
+- `notebooks/MODELING.ipynb` loads `configs/model.yaml` with `ecg/config.py`, then calls `ecg/training/` (baselines, sweep, CNN, QAT), `ecg/deployment/` (quantisation, synthesis), `ecg/evaluation/` (DS2 scores, errors, figures) and `ecg/noise/` (noise test). It writes `results/` and `max78002/`.
 - The report sections quote the tables in `results/` and `max78002/`.
 
 Design rules:

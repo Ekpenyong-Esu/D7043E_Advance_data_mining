@@ -1,6 +1,6 @@
 # results/tables/
 
-LaTeX tables of report sections 4 to 6, written by `notebooks/MODELING.ipynb` with `src/ecg/eda/latex.py` and copied to `report/tables/`.
+LaTeX tables of report sections 4 to 6, written by `notebooks/MODELING.ipynb` with `src/ecg/eda/latex.py` and read by the report with `\input`.
 
 Start with `model_selection.tex`. In report order:
 
